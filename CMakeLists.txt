@@ -53,8 +53,11 @@ endif ()
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC $<$<CONFIG:Debug>:DEBUG=1>)
 
-add_subdirectory(HeaderForge)
-include(${CMAKE_CURRENT_LIST_DIR}/SerdeHelpers.cmake)
+option(SERDE_BUILD_HEADER_FORGE "Build the HeaderForge code generation tool" ON)
+if(SERDE_BUILD_HEADER_FORGE)
+    add_subdirectory(HeaderForge)
+    include(${CMAKE_CURRENT_LIST_DIR}/SerdeHelpers.cmake)
+endif()
 
 # --------------------------
 # Tests

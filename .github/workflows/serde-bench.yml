@@ -16,12 +16,9 @@ jobs:
             name: macOS
           - os: windows-latest
             name: Windows x64
-            arch: x64
-            llvm_installer: https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/LLVM-17.0.6-win64.exe
           - os: windows-latest
             name: Windows x86
-            arch: Win32
-            llvm_installer: https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/LLVM-17.0.6-win32.exe
+            cxx_flags: -m32
 
     steps:
       - uses: actions/checkout@v4
@@ -36,33 +33,25 @@ jobs:
           brew install llvm
           echo "CMAKE_PREFIX_PATH=$(brew --prefix llvm)" >> $GITHUB_ENV
 
-      - name: Cache LLVM (Windows)
+      - name: Build and test (Windows)
         if: runner.os == 'Windows'
-        id: cache-llvm
-        uses: actions/cache@v4
-        with:
-          path: C:\LLVM
-          key: llvm-17.0.6-${{ matrix.arch }}
-
-      - name: Install LLVM (Windows)
-        if: runner.os == 'Windows'
-        id: install-llvm
-        uses: KyleMayes/install-llvm-action@v2
-        with:
-          version: "17.0.6"
-          directory: C:\LLVM
-          cached: ${{ steps.cache-llvm.outputs.cache-hit }}
-
-      - name: Configure paths (Windows)
-        if: runner.os == 'Windows'
-        shell: powershell
+        shell: bash
         run: |
-          choco install cmake --confirm
-          Add-Content $env:GITHUB_ENV "LLVM_DIR=C:\LLVM\lib\cmake\llvm"
-          Add-Content $env:GITHUB_ENV "Clang_DIR=C:\LLVM\lib\cmake\clang"
-          Add-Content $env:GITHUB_ENV "CMAKE_GENERATOR_PLATFORM=${{ matrix.arch }}"
+          cmake -S . -B build -G "Ninja" \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}" \
+            -DCMAKE_C_FLAGS="${{ matrix.cxx_flags }}" \
+            -DSERDE_BUILD_TESTS=ON \
+            -DHF_BUILD_TESTS=ON \
+            -DSERDE_BUILD_HEADER_FORGE=OFF
+          cmake --build build --parallel
+          ./build/json_test_suite ./build/_deps/jsontestsuite-src/test_parsing
+          ./build/hf_test_suite
 
       - name: Run tests
+        if: runner.os != 'Windows'
         shell: bash
         run: ./serde.sh test
 
