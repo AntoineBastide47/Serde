@@ -241,9 +241,20 @@ namespace Serde {
         case TOKEN_STRING: {
           ptr = p;
           const char *q = p + 1;
+          bool escaped = false;
           bool done = false;
           while (q < bufferEnd) {
-            if (*q == '"' && q[-1] != '\\') {
+            if (escaped) {
+              escaped = false;
+              ++q;
+              continue;
+            }
+            if (*q == '\\') {
+              escaped = true;
+              ++q;
+              continue;
+            }
+            if (*q == '"') {
               end = q;
               JSON json = parseString();
               foundData = true;
