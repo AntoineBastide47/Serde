@@ -42,9 +42,10 @@ jobs:
         run: |
           $installer = "$env:TEMP\llvm-installer.exe"
           Invoke-WebRequest -Uri "${{ matrix.llvm_installer }}" -OutFile $installer
-          Start-Process -Wait -FilePath $installer -ArgumentList "/S"
+          Start-Process -Wait -FilePath $installer -ArgumentList "/S /D=C:\LLVM"
           choco install cmake --confirm
-          Add-Content $env:GITHUB_ENV "CMAKE_PREFIX_PATH=C:\Program Files\LLVM"
+          Add-Content $env:GITHUB_ENV "LLVM_DIR=C:\LLVM\lib\cmake\llvm"
+          Add-Content $env:GITHUB_ENV "Clang_DIR=C:\LLVM\lib\cmake\clang"
           Add-Content $env:GITHUB_ENV "CMAKE_GENERATOR_PLATFORM=${{ matrix.arch }}"
 
       - name: Run tests
