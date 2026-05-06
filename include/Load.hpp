@@ -19,8 +19,7 @@ namespace Serde {
     if constexpr (HasLoadFunction<T, Format>) {
       if constexpr (!IsConst<T>)
         _e_load(result, format, json);
-    }
-    else
+    } else
       static_assert(
         _e_f<T>, R"(
 No load overloads were found for the requested type.
@@ -58,7 +57,7 @@ No load overloads were found for the requested type.
     }
   }
 
-  template<typename T, size_t N> static void _e_load(T (&result)[N], const Format format, const JSON &json) {
+  template<typename T, size_t N> static void _e_load(T(&result)[N], const Format format, const JSON & json) {
     if (format == Format::JSON) {
       const auto &array = json.GetArray();
 
@@ -116,7 +115,7 @@ No load overloads were found for the requested type.
           _e_loadImpl(value, format, e);
           result.emplace_back(std::move(value));
         }
-      } else if constexpr (std::is_same_v<std::decay_t<T>, std::array<typename T::value_type, T().size()>>) {
+      } else if constexpr (std::is_same_v < std::decay_t < T >, std::array<typename T::value_type, T().size()> >) {
         if (array.size() != T().size()) {
           throw std::runtime_error("JSON array size mismatch for std::array");
         }
@@ -175,14 +174,14 @@ No load overloads were found for the requested type.
       }
 
       if constexpr (IsNotReflectable<typename T::element_type>) {
-        if constexpr (IsSharedPtr<T>)
+        if constexpr (IsSharedPtr < T >)
           result = std::make_shared<typename T::element_type>();
         else
           result = std::make_unique<typename T::element_type>();
 
         _e_loadImpl(*result, format, json);
       } else {
-        if constexpr (IsSharedPtr<T>)
+        if constexpr (IsSharedPtr < T >)
           result = ReflectionFactory::CreateShared<typename T::element_type>(json["type"].GetString());
         else
           result = ReflectionFactory::CreateUnique<typename T::element_type>(json["type"].GetString());
@@ -198,7 +197,7 @@ No load overloads were found for the requested type.
       result._e_load(format, json);
       result.OnDeserialize(format, json);
     } else
-      static_assert(_e_f<T>, "Missing load function. Ensure the type uses it's SERIALIZE_* macro.");
+      static_assert(_e_f < T >, "Missing load function. Ensure the type uses it's SERIALIZE_* macro.");
   }
 
   template<typename... Ts> static void _e_load(std::tuple<Ts...> &t, const Format format, const JSON &json) {
@@ -226,12 +225,12 @@ No load overloads were found for the requested type.
       [&]<size_t... Is>(std::index_sequence<Is...>) {
         (void)((Is == idx
                   ? [&] {
-                    std::variant_alternative_t<Is, std::variant<Ts...>> temp;
+                    std::variant_alternative_t < Is, std::variant<Ts...> > temp;
                     _e_loadImpl(temp, format, valueJson);
                     v = std::move(temp);
                   }(), true
                   : false) || ...);
-      }(std::index_sequence_for<Ts...>{});
+      }(std::index_sequence_for < Ts...>{});
     }
   }
 

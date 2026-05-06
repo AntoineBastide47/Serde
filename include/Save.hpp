@@ -40,12 +40,12 @@ No save overloads were found for the requested type.
       json = data;
   }
 
-  template<size_t N> static void _e_save(const char (&data)[N], const Format format, JSON &json) {
+  template<size_t N> static void _e_save(const char(&data)[N], const Format format, JSON & json) {
     if (format == Format::JSON)
       json = std::string_view(data, N > 0 ? N - 1 : 0);
   }
 
-  template<typename T, size_t N> static void _e_save(const T (&data)[N], const Format format, JSON &json) {
+  template<typename T, size_t N> static void _e_save(const T(&data)[N], const Format format, JSON & json) {
     if (format == Format::JSON) {
       json = JSON::Array();
       json.ReserveAndResize(N);
@@ -135,7 +135,7 @@ No save overloads were found for the requested type.
       data.OnSerialize(format, json);
     } else
       static_assert(
-        _e_f<T>,
+        _e_f < T >,
         "Missing save function. Ensure the type uses it's SERIALIZE_* macro."
       );
   }

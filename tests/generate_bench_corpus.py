@@ -3,7 +3,6 @@ import argparse
 import json
 from pathlib import Path
 
-
 DEFAULT_MIN_BYTES = 5 * 1024 * 1024
 
 WORDS = (

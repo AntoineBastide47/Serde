@@ -92,7 +92,6 @@ namespace Serde {
         return enumTypeIdToName.contains(typeid(T).name());
       }
 
-
       /// @returns The name of the given if it has been registered, "" if not
       template<IsEnum T> static std::string EnumName() {
         if (const auto typeId = typeid(T).name(); enumTypeIdToName.contains(typeId))

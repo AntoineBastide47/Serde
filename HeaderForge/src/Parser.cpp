@@ -319,7 +319,7 @@ namespace HeaderForge {
   }
 
   std::string Parser::getClangResourceDir() {
-    std::array<char, 128> buffer{};
+    std::array < char, 128 > buffer{};
     static std::string result;
     if (!result.empty())
       return result;
@@ -338,7 +338,7 @@ namespace HeaderForge {
   }
 
   std::string Parser::getMacOSSDKPath() {
-    std::array<char, 128> buffer{};
+    std::array < char, 128 > buffer{};
     static std::string result;
     if (!result.empty())
       return result;

@@ -33,13 +33,15 @@ int main(const int argc, char *argv[]) {
     if (entry.path().extension() == ".json")
       entries.push_back(entry.path());
   }
-  std::sort(entries.begin(), entries.end(), [](const fs::path &a, const fs::path &b) {
-    const std::string na = a.filename().string();
-    const std::string nb = b.filename().string();
-    const int ga = na.starts_with("y_") ? 0 : na.starts_with("n_") ? 1 : 2;
-    const int gb = nb.starts_with("y_") ? 0 : nb.starts_with("n_") ? 1 : 2;
-    return ga != gb ? ga < gb : na < nb;
-  });
+  std::sort(
+    entries.begin(), entries.end(), [](const fs::path &a, const fs::path &b) {
+      const std::string na = a.filename().string();
+      const std::string nb = b.filename().string();
+      const int ga = na.starts_with("y_") ? 0 : na.starts_with("n_") ? 1 : 2;
+      const int gb = nb.starts_with("y_") ? 0 : nb.starts_with("n_") ? 1 : 2;
+      return ga != gb ? ga < gb : na < nb;
+    }
+  );
 
   int passed = 0, failed = 0;
   std::vector<std::string> failures;
@@ -47,15 +49,17 @@ int main(const int argc, char *argv[]) {
   auto runTest = [&](const fs::path &path) -> bool {
     // Use packaged_task + detached thread: unlike std::async, the resulting
     // future does NOT block in its destructor, so timed-out threads don't stall.
-    std::packaged_task<bool()> task([&path]() -> bool {
-      std::ifstream file(path, std::ios::binary);
-      try {
-        Serde::JSONParser(file).Parse();
-        return true;
-      } catch (...) {
-        return false;
+    std::packaged_task < bool() > task(
+      [&path]() -> bool {
+        std::ifstream file(path, std::ios::binary);
+        try {
+          Serde::JSONParser(file).Parse();
+          return true;
+        } catch (...) {
+          return false;
+        }
       }
-    });
+    );
     auto future = task.get_future();
     std::thread(std::move(task)).detach();
     if (future.wait_for(PARSE_TIMEOUT) != std::future_status::ready)
@@ -69,11 +73,12 @@ int main(const int argc, char *argv[]) {
     const std::string name = path.filename().string();
     const bool mustAccept = name.starts_with("y_");
     const bool mustReject = name.starts_with("n_");
-    const bool impl       = !mustAccept && !mustReject;
+    const bool impl = !mustAccept && !mustReject;
 
     const std::string section = mustAccept ? "y_" : mustReject ? "n_" : "i_";
     if (section != currentSection) {
-      if (!currentSection.empty()) std::cout << "\n";
+      if (!currentSection.empty())
+        std::cout << "\n";
       std::cout << "--- " << section << " tests ---\n";
       currentSection = section;
     }

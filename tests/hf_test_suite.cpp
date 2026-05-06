@@ -43,9 +43,10 @@ static std::string readFile(const std::string &path) {
 }
 
 static int tmpCounter = 0;
+
 static std::string writeTmp(const std::string &content) {
   const std::string path =
-    (fs::temp_directory_path() / ("hf_test_" + std::to_string(++tmpCounter) + ".hpp")).string();
+      (fs::temp_directory_path() / ("hf_test_" + std::to_string(++tmpCounter) + ".hpp")).string();
   std::ofstream f(path);
   f << content;
   return path;
@@ -60,9 +61,9 @@ static void testGenerateReflectionFactoryCode() {
   Generator::GenerateReflectionFactoryCode(Record{false, "MyStruct", "f.hpp", {}, {}}, out);
   const std::string s = out.str();
 
-  check(has(s, "RegisterType<MyStruct>"),       "registers correct type");
-  check(has(s, "\"MyStruct\""),                 "uses correct type name string");
-  check(has(s, "return true;"),                 "lambda returns true");
+  check(has(s, "RegisterType<MyStruct>"), "registers correct type");
+  check(has(s, "\"MyStruct\""), "uses correct type name string");
+  check(has(s, "return true;"), "lambda returns true");
 }
 
 // ---- GenerateSaveFunction --------------------------------------------------
@@ -75,8 +76,8 @@ static void testGenerateSaveFunction() {
     std::ostringstream out;
     Generator::GenerateSaveFunction(Record{false, "S", "f.hpp", {"x", "y"}, {}}, out);
     const std::string s = out.str();
-    check(has(s, "_e_save"),                              "save signature present");
-    check(has(s, "json = Serde::JSON::Object()"),        "initialises json object");
+    check(has(s, "_e_save"), "save signature present");
+    check(has(s, "json = Serde::JSON::Object()"), "initialises json object");
     check(has(s, "_e_saveImpl(x, format, json[\"x\"])"), "saves field x");
     check(has(s, "_e_saveImpl(y, format, json[\"y\"])"), "saves field y");
   }
@@ -87,7 +88,7 @@ static void testGenerateSaveFunction() {
     Generator::GenerateSaveFunction(Record{false, "Empty", "f.hpp", {}, {}}, out);
     const std::string s = out.str();
     check(has(s, "json = Serde::JSON::Object()"), "empty struct still initialises object");
-    check(!has(s, "_e_saveImpl"),                  "empty struct has no save calls");
+    check(!has(s, "_e_saveImpl"), "empty struct has no save calls");
   }
 }
 
@@ -101,7 +102,7 @@ static void testGenerateLoadFunction() {
     std::ostringstream out;
     Generator::GenerateLoadFunction(Record{false, "S", "f.hpp", {"a", "b"}, {}}, out);
     const std::string s = out.str();
-    check(has(s, "_e_load"),                               "load signature present");
+    check(has(s, "_e_load"), "load signature present");
     check(has(s, "_e_loadImpl(a, format, json.At(\"a\"))"), "loads field a");
     check(has(s, "_e_loadImpl(b, format, json.At(\"b\"))"), "loads field b");
   }
@@ -126,7 +127,7 @@ static void testGenerateRecordMacro() {
     Generator::GenerateRecordMacro(Record{false, "MyStruct", "f.hpp", {"v"}, {}}, out);
     const std::string s = out.str();
     check(s.rfind("#define SERIALIZE_MYSTRUCT", 0) == 0, "struct macro name correct");
-    check(!has(s, "private:"),                           "struct has no private section");
+    check(!has(s, "private:"), "struct has no private section");
   }
 
   // class — ends with private:
@@ -135,7 +136,7 @@ static void testGenerateRecordMacro() {
     Generator::GenerateRecordMacro(Record{true, "MyClass", "f.hpp", {"v"}, {}}, out);
     const std::string s = out.str();
     check(s.rfind("#define SERIALIZE_MYCLASS", 0) == 0, "class macro name correct");
-    check(has(s, "private:"),                           "class ends with private section");
+    check(has(s, "private:"), "class ends with private section");
   }
 
   // qualified name — macro uses simple name, body uses fully-qualified name
@@ -143,8 +144,8 @@ static void testGenerateRecordMacro() {
     std::ostringstream out;
     Generator::GenerateRecordMacro(Record{true, "NS::MyClass", "f.hpp", {"x"}, {}}, out);
     const std::string s = out.str();
-    check(s.rfind("#define SERIALIZE_MYCLASS", 0) == 0,  "qualified name strips namespace from macro");
-    check(has(s, "RegisterType<NS::MyClass>"),           "fully-qualified name used in factory registration");
+    check(s.rfind("#define SERIALIZE_MYCLASS", 0) == 0, "qualified name strips namespace from macro");
+    check(has(s, "RegisterType<NS::MyClass>"), "fully-qualified name used in factory registration");
   }
 
   // no fields — load body closes immediately
@@ -152,8 +153,8 @@ static void testGenerateRecordMacro() {
     std::ostringstream out;
     Generator::GenerateRecordMacro(Record{false, "Bare", "f.hpp", {}, {}}, out);
     const std::string s = out.str();
-    check(!has(s, "_e_saveImpl"),  "no-field struct has no save calls");
-    check(!has(s, "_e_loadImpl"),  "no-field struct has no load calls");
+    check(!has(s, "_e_saveImpl"), "no-field struct has no save calls");
+    check(!has(s, "_e_loadImpl"), "no-field struct has no load calls");
   }
 }
 
@@ -169,12 +170,14 @@ static void testGenerateEnumReflectionMacro() {
     std::ostringstream out;
     Generator::GenerateEnumReflectionMacro(e, out, true);
     const std::string s = out.str();
-    check(has(s, "REFLECT_MYENUM"),              "macro name correct");
-    check(has(s, "RegisterEnum<MyEnum>"),        "registers correct enum type");
-    check(has(s, "\"Val1\", MyEnum::Val1"),      "includes Val1 with correct syntax");
-    check(has(s, "\"Val2\", MyEnum::Val2"),      "includes Val2 with correct syntax");
-    check(!s.empty() && s.back() == '\n' &&
-          s[s.size() - 2] != '\\',              "last enum ends without continuation backslash");
+    check(has(s, "REFLECT_MYENUM"), "macro name correct");
+    check(has(s, "RegisterEnum<MyEnum>"), "registers correct enum type");
+    check(has(s, "\"Val1\", MyEnum::Val1"), "includes Val1 with correct syntax");
+    check(has(s, "\"Val2\", MyEnum::Val2"), "includes Val2 with correct syntax");
+    check(
+      !s.empty() && s.back() == '\n' &&
+      s[s.size() - 2] != '\\', "last enum ends without continuation backslash"
+    );
   }
 
   // non-last enum — ends with backslash then newline
@@ -183,8 +186,10 @@ static void testGenerateEnumReflectionMacro() {
     Generator::GenerateEnumReflectionMacro(e, out, false);
     const std::string s = out.str();
     const auto bs = s.rfind('\\');
-    check(bs != std::string::npos && bs == s.size() - 2,
-          "non-last enum ends with continuation backslash");
+    check(
+      bs != std::string::npos && bs == s.size() - 2,
+      "non-last enum ends with continuation backslash"
+    );
   }
 
   // qualified enum name
@@ -192,8 +197,8 @@ static void testGenerateEnumReflectionMacro() {
     std::ostringstream out;
     Generator::GenerateEnumReflectionMacro(Enum{"NS::MyEnum", {"A"}}, out, true);
     const std::string s = out.str();
-    check(has(s, "REFLECT_MYENUM"),              "qualified enum strips namespace from macro");
-    check(has(s, "RegisterEnum<NS::MyEnum>"),    "fully-qualified name used in registration");
+    check(has(s, "REFLECT_MYENUM"), "qualified enum strips namespace from macro");
+    check(has(s, "RegisterEnum<NS::MyEnum>"), "fully-qualified name used in registration");
   }
 }
 
@@ -206,20 +211,24 @@ static void testGenerateRecordContent() {
   {
     const std::string s = Generator::GenerateRecordContent({Record{false, "S", "f.hpp", {"f"}, {}}});
     check(s.rfind("// Auto-generated", 0) == 0, "starts with auto-generated comment");
-    check(has(s, "#pragma once"),               "contains pragma once");
-    check(has(s, "#define SERIALIZE_S"),        "contains struct macro");
+    check(has(s, "#pragma once"), "contains pragma once");
+    check(has(s, "#define SERIALIZE_S"), "contains struct macro");
   }
 
   // multiple records — order preserved, both macros present
   {
-    const std::string s = Generator::GenerateRecordContent({
-      Record{false, "A", "f.hpp", {}, {}},
-      Record{true,  "B", "f.hpp", {}, {}},
-    });
-    check(has(s, "#define SERIALIZE_A"),                           "first record macro present");
-    check(has(s, "#define SERIALIZE_B"),                           "second record macro present");
-    check(s.find("#define SERIALIZE_A") < s.find("#define SERIALIZE_B"),
-          "records appear in declaration order");
+    const std::string s = Generator::GenerateRecordContent(
+      {
+        Record{false, "A", "f.hpp", {}, {}},
+        Record{true, "B", "f.hpp", {}, {}},
+      }
+    );
+    check(has(s, "#define SERIALIZE_A"), "first record macro present");
+    check(has(s, "#define SERIALIZE_B"), "second record macro present");
+    check(
+      s.find("#define SERIALIZE_A") < s.find("#define SERIALIZE_B"),
+      "records appear in declaration order"
+    );
   }
 }
 
@@ -230,28 +239,20 @@ static void testWriteFileIfChanged() {
 
   const std::string path = (fs::temp_directory_path() / "hf_wfic_test.txt").string();
   const std::string content = "hello\n";
-  fs::remove(path);
-
-  {
+  fs::remove(path); {
     const bool wrote = Generator::WriteFileIfChanged(path, content, false);
-    check(wrote,                      "writes new file");
-    check(fs::exists(path),           "file exists after write");
-    check(readFile(path) == content,  "file content matches");
-  }
-
-  {
+    check(wrote, "writes new file");
+    check(fs::exists(path), "file exists after write");
+    check(readFile(path) == content, "file content matches");
+  } {
     const bool wrote = Generator::WriteFileIfChanged(path, content, false);
     check(!wrote, "skips write when content identical");
-  }
-
-  {
+  } {
     const std::string changed = "changed\n";
     const bool wrote = Generator::WriteFileIfChanged(path, changed, false);
-    check(wrote,                       "writes when content differs");
-    check(readFile(path) == changed,   "updated content stored");
-  }
-
-  {
+    check(wrote, "writes when content differs");
+    check(readFile(path) == changed, "updated content stored");
+  } {
     const std::string cur = readFile(path);
     const bool wrote = Generator::WriteFileIfChanged(path, cur, true);
     check(wrote, "override forces write even when content identical");
@@ -277,8 +278,8 @@ static void testAddGeneratedInclude() {
     const std::string result = readFile(path);
     const auto vecPos = result.find("#include <vector>");
     const auto genPos = result.find("#include \"Foo.gen.hpp\"");
-    check(genPos != std::string::npos,  "include added");
-    check(genPos > vecPos,              "inserted after last existing include");
+    check(genPos != std::string::npos, "include added");
+    check(genPos > vecPos, "inserted after last existing include");
     fs::remove(path);
   }
 
@@ -287,8 +288,10 @@ static void testAddGeneratedInclude() {
     const std::string path = writeTmp("class Foo {};\n");
     Generator::AddGeneratedInclude(path, "Foo.gen.hpp");
     const std::string result = readFile(path);
-    check(result.rfind("#include \"Foo.gen.hpp\"", 0) == 0,
-          "inserted at top when no includes present");
+    check(
+      result.rfind("#include \"Foo.gen.hpp\"", 0) == 0,
+      "inserted at top when no includes present"
+    );
     fs::remove(path);
   }
 
@@ -301,7 +304,10 @@ static void testAddGeneratedInclude() {
     Generator::AddGeneratedInclude(path, "Bar.gen.hpp");
     const std::string result = readFile(path);
     size_t count = 0, pos = 0;
-    while ((pos = result.find("Bar.gen.hpp", pos)) != std::string::npos) { ++count; ++pos; }
+    while ((pos = result.find("Bar.gen.hpp", pos)) != std::string::npos) {
+      ++count;
+      ++pos;
+    }
     check(count == 1, "include not duplicated on second call");
     fs::remove(path);
   }
@@ -321,9 +327,11 @@ static void testInjectSerializeMacro() {
     );
     Generator::InjectSerializeMacro(path, {Record{false, "MyStruct", path, {}, {}}});
     const std::string result = readFile(path);
-    check(has(result, "SERIALIZE_MYSTRUCT"),                  "macro injected");
-    check(result.find("SERIALIZE_MYSTRUCT") > result.find('{'),
-          "macro appears after opening brace");
+    check(has(result, "SERIALIZE_MYSTRUCT"), "macro injected");
+    check(
+      result.find("SERIALIZE_MYSTRUCT") > result.find('{'),
+      "macro appears after opening brace"
+    );
     fs::remove(path);
   }
 
@@ -352,7 +360,10 @@ static void testInjectSerializeMacro() {
     Generator::InjectSerializeMacro(path, {Record{false, "S", path, {}, {}}});
     const std::string result = readFile(path);
     size_t count = 0, pos = 0;
-    while ((pos = result.find("SERIALIZE_S", pos)) != std::string::npos) { ++count; ++pos; }
+    while ((pos = result.find("SERIALIZE_S", pos)) != std::string::npos) {
+      ++count;
+      ++pos;
+    }
     check(count == 1, "macro not duplicated on second call");
     fs::remove(path);
   }
@@ -366,8 +377,8 @@ static void testInjectSerializeMacro() {
     );
     Generator::InjectSerializeMacro(path, {Record{true, "NS::MyClass", path, {}, {}}});
     const std::string result = readFile(path);
-    check(has(result, "SERIALIZE_MYCLASS"),   "qualified name uses simple name in macro");
-    check(!has(result, "SERIALIZE_NS"),       "namespace not included in macro name");
+    check(has(result, "SERIALIZE_MYCLASS"), "qualified name uses simple name in macro");
+    check(!has(result, "SERIALIZE_NS"), "namespace not included in macro name");
     fs::remove(path);
   }
 }
@@ -389,8 +400,8 @@ static void testInjectReflectMacro() {
     );
     Generator::InjectReflectMacro(path, {Enum{"MyEnum", {"Val1", "Val2"}}});
     const std::string result = readFile(path);
-    check(has(result, "REFLECT_MYENUM"),                        "reflect macro injected");
-    check(result.find("REFLECT_MYENUM") > result.find("};"),    "macro appears after closing brace");
+    check(has(result, "REFLECT_MYENUM"), "reflect macro injected");
+    check(result.find("REFLECT_MYENUM") > result.find("};"), "macro appears after closing brace");
     fs::remove(path);
   }
 
@@ -403,7 +414,10 @@ static void testInjectReflectMacro() {
     Generator::InjectReflectMacro(path, {Enum{"E", {"A"}}});
     const std::string result = readFile(path);
     size_t count = 0, pos = 0;
-    while ((pos = result.find("REFLECT_E", pos)) != std::string::npos) { ++count; ++pos; }
+    while ((pos = result.find("REFLECT_E", pos)) != std::string::npos) {
+      ++count;
+      ++pos;
+    }
     check(count == 1, "reflect macro not duplicated on second call");
     fs::remove(path);
   }
@@ -424,7 +438,7 @@ int main() {
   testInjectReflectMacro();
 
   std::cout << "\n";
-  for (const auto &f : failures)
+  for (const auto &f: failures)
     std::cout << "FAIL: " << f << "\n";
   std::cout << "\n" << passed << " passed, " << failed << " failed\n";
   return failed > 0 ? 1 : 0;
