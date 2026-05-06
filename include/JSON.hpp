@@ -47,6 +47,8 @@ namespace Serde {
       JSON();
       /// Creates a JSON boolean value
       JSON(bool value);
+      /// Creates a JSON string value from a const char *
+      JSON(const char * value);
       /// Assigns the given array or object to this instance.
       JSON(const std::initializer_list<JSON> &values);
 

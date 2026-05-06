@@ -21,6 +21,9 @@ namespace Serde {
   JSON::JSON(const bool value)
     : type(Boolean), data(value) {}
 
+  JSON::JSON(const char *value)
+    : JSON(std::string(value)) {}
+
   JSON::JSON(const std::initializer_list<JSON> &values) {
     const bool isObject = std::ranges::all_of(
       values, [](const JSON &j) {
@@ -39,14 +42,27 @@ namespace Serde {
       data = std::make_unique<JSONArray>(values);
   }
 
-  JSON::JSON(const JSON &other) : type(other.type) {
+  JSON::JSON(const JSON &other)
+    : type(other.type) {
     switch (type) {
-      case Null:    data = null; break;
-      case Boolean: data = std::get<bool>(other.data); break;
-      case Number:  data = std::get<double>(other.data); break;
-      case String:  data = std::get<std::string>(other.data); break;
-      case array:   data = std::make_unique<JSONArray>(*std::get<std::unique_ptr<JSONArray>>(other.data)); break;
-      case object:  data = std::make_unique<JSONObject>(*std::get<std::unique_ptr<JSONObject>>(other.data)); break;
+      case Null:
+        data = null;
+        break;
+      case Boolean:
+        data = std::get<bool>(other.data);
+        break;
+      case Number:
+        data = std::get<double>(other.data);
+        break;
+      case String:
+        data = std::get<std::string>(other.data);
+        break;
+      case array:
+        data = std::make_unique<JSONArray>(*std::get<std::unique_ptr<JSONArray>>(other.data));
+        break;
+      case object:
+        data = std::make_unique<JSONObject>(*std::get<std::unique_ptr<JSONObject>>(other.data));
+        break;
     }
   }
 
@@ -55,25 +71,44 @@ namespace Serde {
       return *this;
     type = other.type;
     switch (type) {
-      case Null:    data = null; break;
-      case Boolean: data = std::get<bool>(other.data); break;
-      case Number:  data = std::get<double>(other.data); break;
-      case String:  data = std::get<std::string>(other.data); break;
-      case array:   data = std::make_unique<JSONArray>(*std::get<std::unique_ptr<JSONArray>>(other.data)); break;
-      case object:  data = std::make_unique<JSONObject>(*std::get<std::unique_ptr<JSONObject>>(other.data)); break;
+      case Null:
+        data = null;
+        break;
+      case Boolean:
+        data = std::get<bool>(other.data);
+        break;
+      case Number:
+        data = std::get<double>(other.data);
+        break;
+      case String:
+        data = std::get<std::string>(other.data);
+        break;
+      case array:
+        data = std::make_unique<JSONArray>(*std::get<std::unique_ptr<JSONArray>>(other.data));
+        break;
+      case object:
+        data = std::make_unique<JSONObject>(*std::get<std::unique_ptr<JSONObject>>(other.data));
+        break;
     }
     return *this;
   }
 
   bool JSON::operator==(const JSON &other) const {
-    if (type != other.type) return false;
+    if (type != other.type)
+      return false;
     switch (type) {
-      case Null:    return true;
-      case Boolean: return std::get<bool>(data) == std::get<bool>(other.data);
-      case Number:  return std::get<double>(data) == std::get<double>(other.data);
-      case String:  return std::get<std::string>(data) == std::get<std::string>(other.data);
-      case array:   return GetArray() == other.GetArray();
-      case object:  return GetObject() == other.GetObject();
+      case Null:
+        return true;
+      case Boolean:
+        return std::get<bool>(data) == std::get<bool>(other.data);
+      case Number:
+        return std::get<double>(data) == std::get<double>(other.data);
+      case String:
+        return std::get<std::string>(data) == std::get<std::string>(other.data);
+      case array:
+        return GetArray() == other.GetArray();
+      case object:
+        return GetObject() == other.GetObject();
     }
     return false;
   }
@@ -136,7 +171,8 @@ namespace Serde {
     }
     auto &obj = GetObject();
     for (auto &[k, v]: obj)
-      if (k == key) return v;
+      if (k == key)
+        return v;
     obj.emplace_back(key, JSON{});
     return obj.back().second;
   }
@@ -144,7 +180,8 @@ namespace Serde {
   const JSON &JSON::operator[](const std::string &key) const {
     if (type == object) {
       for (const auto &[k, v]: GetObject())
-        if (k == key) return v;
+        if (k == key)
+          return v;
       Log::Error("JSON::operator[] key: \"" + key + "\" not found");
       throw std::out_of_range("");
     }
@@ -399,7 +436,11 @@ namespace Serde {
   void JSON::Erase(const std::string &key) {
     if (type == object) {
       auto &obj = GetObject();
-      const auto it = std::ranges::find_if(obj, [&](const auto &p) { return p.first == key; });
+      const auto it = std::ranges::find_if(
+        obj, [&](const auto &p) {
+          return p.first == key;
+        }
+      );
       if (it != obj.end())
         obj.erase(it);
     }
@@ -414,7 +455,8 @@ namespace Serde {
   JSON &JSON::At(const std::string &key) {
     if (type == object) {
       for (auto &[k, v]: GetObject())
-        if (k == key) return v;
+        if (k == key)
+          return v;
       Log::Error("JSON::At() key not found: \"" + key + "\"");
       throw std::out_of_range("");
     }
@@ -425,7 +467,8 @@ namespace Serde {
   const JSON &JSON::At(const std::string &key) const {
     if (type == object) {
       for (const auto &[k, v]: GetObject())
-        if (k == key) return v;
+        if (k == key)
+          return v;
       Log::Error("JSON::At() key not found: \"" + key + "\"");
       throw std::out_of_range("");
     }
@@ -436,7 +479,8 @@ namespace Serde {
   JSON &JSON::Value(const std::string &key, JSON &defaultValue) {
     if (type == object) {
       for (auto &[k, v]: GetObject())
-        if (k == key) return v == JSON{} ? defaultValue : v;
+        if (k == key)
+          return v == JSON{} ? defaultValue : v;
     }
     return defaultValue;
   }
@@ -444,7 +488,8 @@ namespace Serde {
   const JSON &JSON::Value(const std::string &key, JSON &defaultValue) const {
     if (type == object) {
       for (const auto &[k, v]: GetObject())
-        if (k == key) return v == JSON{} ? defaultValue : v;
+        if (k == key)
+          return v == JSON{} ? defaultValue : v;
     }
     return defaultValue;
   }
@@ -471,7 +516,11 @@ namespace Serde {
   bool JSON::Contains(const std::string &key) const {
     if (type == object) {
       const auto &obj = GetObject();
-      return std::ranges::any_of(obj, [&](const auto &p) { return p.first == key; });
+      return std::ranges::any_of(
+        obj, [&](const auto &p) {
+          return p.first == key;
+        }
+      );
     }
     Log::Error("JSON::Contains() called on non-object type");
     throw std::out_of_range("");
