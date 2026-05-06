@@ -30,39 +30,69 @@ namespace Serde {
 
   static constexpr auto validNumberChar = []() noexcept {
     std::array<bool, 256> t{};
-    for (const uint8_t c : {
-      '0','1','2','3','4','5','6','7','8','9','e','E','-','+','.'
-    }) t[c] = true;
+    for (const uint8_t c: {
+           '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'e', 'E', '-', '+', '.'
+         })
+      t[c] = true;
     return t;
   }();
 
   static constexpr auto escapedMap = []() noexcept {
     std::array<char, 256> t{};
-    t[static_cast<uint8_t>('"')]  = '"';
+    t[static_cast<uint8_t>('"')] = '"';
     t[static_cast<uint8_t>('\\')] = '\\';
-    t[static_cast<uint8_t>('/')]  = '/';
-    t[static_cast<uint8_t>('b')]  = '\b';
-    t[static_cast<uint8_t>('f')]  = '\f';
-    t[static_cast<uint8_t>('n')]  = '\n';
-    t[static_cast<uint8_t>('r')]  = '\r';
-    t[static_cast<uint8_t>('t')]  = '\t';
+    t[static_cast<uint8_t>('/')] = '/';
+    t[static_cast<uint8_t>('b')] = '\b';
+    t[static_cast<uint8_t>('f')] = '\f';
+    t[static_cast<uint8_t>('n')] = '\n';
+    t[static_cast<uint8_t>('r')] = '\r';
+    t[static_cast<uint8_t>('t')] = '\t';
     return t;
   }();
 
-  // Marks characters that terminate a plain string run: control chars (0x00-0x1F), '"', '\\'
-  static constexpr auto stringStopChar = []() noexcept {
-    std::array<bool, 256> t{};
-    for (uint8_t i = 0; i <= 0x1F; ++i) t[i] = true;
-    t[static_cast<uint8_t>('"')]  = true;
-    t[static_cast<uint8_t>('\\')] = true;
+  static constexpr int minPowerOf10 = -50;
+  static constexpr int maxPowerOf10 = 50;
+  static constexpr auto powersOf10 = []() noexcept {
+    std::array<double, maxPowerOf10 - minPowerOf10 + 1> t{};
+    t[-minPowerOf10] = 1.0;
+    for (int i = 1; i <= maxPowerOf10; ++i)
+      t[i - minPowerOf10] = t[i - 1 - minPowerOf10] * 10.0;
+    for (int i = -1; i >= minPowerOf10; --i)
+      t[i - minPowerOf10] = t[i + 1 - minPowerOf10] * 0.1;
     return t;
   }();
 
-  static inline bool isEscapedQuote(const char *quote, const char *stringStart) {
-    size_t backslashes = 0;
-    for (const char *p = quote; p > stringStart && p[-1] == '\\'; --p)
-      ++backslashes;
-    return (backslashes & 1) != 0;
+  static constexpr uint64_t repeatByte(const uint8_t byte) noexcept {
+    return 0x0101010101010101ULL * byte;
+  }
+
+  static inline bool hasZeroByte(const uint64_t value) noexcept {
+    return ((value - repeatByte(0x01)) & ~value & repeatByte(0x80)) != 0;
+  }
+
+  static inline bool hasControlByte(const uint64_t value) noexcept {
+    return ((value - repeatByte(0x20)) & ~value & repeatByte(0x80)) != 0;
+  }
+
+  static inline const char *findStringStop(const char *p, const char *end) noexcept {
+    constexpr uint64_t quoteMask = repeatByte('"');
+    constexpr uint64_t slashMask = repeatByte('\\');
+
+    while (end - p >= 8) {
+      uint64_t chunk;
+      std::memcpy(&chunk, p, sizeof(chunk));
+      if (hasZeroByte(chunk ^ quoteMask) || hasZeroByte(chunk ^ slashMask) || hasControlByte(chunk))
+        break;
+      p += 8;
+    }
+
+    while (p < end) {
+      const auto c = static_cast<unsigned char>(*p);
+      if (c == '"' || c == '\\' || c <= 0x1F)
+        break;
+      ++p;
+    }
+    return p;
   }
 
   static JSON makeArray(const size_t reserve = 8) {
@@ -95,7 +125,8 @@ namespace Serde {
       }
 
       size_t tail = consumed;
-      while (tail < svSize && (svData[tail] == ' ' || svData[tail] == '\t' || svData[tail] == '\r' || svData[tail] == '\n'))
+      while (tail < svSize && (svData[tail] == ' ' || svData[tail] == '\t' || svData[tail] == '\r' || svData[tail] ==
+                               '\n'))
         ++tail;
       if (tail < svSize) {
         ++column;
@@ -144,7 +175,8 @@ namespace Serde {
     }
 
     size_t tail = consumed;
-    while (tail < buffered && (buffer[tail] == ' ' || buffer[tail] == '\t' || buffer[tail] == '\r' || buffer[tail] == '\n'))
+    while (tail < buffered && (buffer[tail] == ' ' || buffer[tail] == '\t' || buffer[tail] == '\r' || buffer[tail] ==
+                               '\n'))
       ++tail;
     if (tail < buffered) {
       ++column;
@@ -172,7 +204,7 @@ namespace Serde {
       #endif
 
       switch (const char c = *p; tokenTable[static_cast<unsigned char>(c)]) {
-        #if DEBUG
+          #if DEBUG
         case TOKEN_WHITESPACE:
           break;
         case TOKEN_NEWLINE:
@@ -183,7 +215,7 @@ namespace Serde {
         case TOKEN_WHITESPACE:
         case TOKEN_NEWLINE:
           break;
-        #endif
+          #endif
         case TOKEN_OBJECT_START:
           if (++depth > MAX_NESTING_DEPTH)
             THROW_JSON_ERROR("Nesting depth limit exceeded");
@@ -266,26 +298,27 @@ namespace Serde {
           bool needsDecode = false;
           bool done = false;
           while (q < bufferEnd) {
-            if (*q == '"' && (q == p + 1 || q[-1] != '\\' || !isEscapedQuote(q, p + 1))) {
+            q = findStringStop(q, bufferEnd);
+            if (q == bufferEnd)
+              break;
+            if (*q == '"') {
               end = q;
-              JSON json = needsDecode
-                ? parseString()
-                : JSON(std::string(p + 1, static_cast<size_t>(q - p - 1)));
+              std::string key = needsDecode ? parseRawString() : std::string(p + 1, q);
               foundData = true;
 
               if (stack.back()->IsObject()) {
                 if (!pendingKeyIsSet) {
                   if (!candidateKeyIsSet) {
-                    candidateKey = std::move(json.GetString());
+                    candidateKey = std::move(key);
                     candidateKeyIsSet = true;
                   } else
                     THROW_JSON_ERROR("Missing a colon after a key");
                 } else
-                  setObjectValue(std::move(json));
+                  setObjectValue(std::move(key));
               } else if (stack.back()->IsArray())
-                setArrayValue(std::move(json));
+                setArrayValue(std::move(key));
               else if (stack.size() == 1 && !stack.back()->isComplexType()) {
-                *stack.back() = std::move(json);
+                *stack.back() = std::move(key);
                 stack.pop_back();
                 return static_cast<int>(q - buffer + 1);
               }
@@ -296,8 +329,11 @@ namespace Serde {
             }
             if (static_cast<unsigned char>(*q) <= 0x1F)
               THROW_JSON_ERROR("Control character in string");
-            if (*q == '\\')
+            if (*q == '\\') {
               needsDecode = true;
+              q += q + 1 < bufferEnd ? 2 : 1;
+              continue;
+            }
             ++q;
           }
           if (!done) {
@@ -444,7 +480,7 @@ namespace Serde {
     uint64_t intPart = 0;
     if (*ptr == '0') {
       ++ptr;
-      if (isdigit(*ptr))
+      if (ptr < end && isdigit(*ptr))
         THROW_JSON_ERROR("Invalid number: Leading zeros are not allowed");
     } else if (isdigit(*ptr))
       while (ptr < end && isdigit(*ptr)) {
@@ -484,7 +520,10 @@ namespace Serde {
         exponent = exponent * 10 + (*ptr - '0');
         ++ptr;
       }
-      value *= std::pow(10.0, exponent * (1 - 2 * expNeg));
+      const int signedExponent = exponent * (1 - 2 * expNeg);
+      value *= signedExponent >= minPowerOf10 && signedExponent <= maxPowerOf10
+                 ? powersOf10[static_cast<size_t>(signedExponent - minPowerOf10)]
+                 : std::pow(10.0, signedExponent);
     }
 
     #if DEBUG
@@ -503,8 +542,7 @@ namespace Serde {
     return str;
   }
 
-  thread_local std::string result;
-  JSON JSONParser::parseString() {
+  std::string JSONParser::parseRawString() {
     #if DEBUG
     const char *start = ptr;
     #endif
@@ -512,83 +550,85 @@ namespace Serde {
     // ptr points to the opening '"'; skip it so the content loop starts at the first real character.
     ++ptr;
 
-    result.clear();
-    if (const auto approxLen = static_cast<size_t>(end - ptr); approxLen > 0)
-      result.reserve(approxLen);
+    std::string result(static_cast<size_t>(end - ptr), '\0');
+    char *out = result.data();
 
     while (ptr < end) {
-      if (*ptr == '\\') {
-        ++ptr;
-        if (ptr == end)
-          THROW_JSON_ERROR("Unterminated escape sequence");
+      const char *runStart = ptr;
+      ptr = static_cast<const char *>(std::memchr(ptr, '\\', static_cast<size_t>(end - ptr)));
+      if (ptr == nullptr)
+        ptr = end;
 
-        if (const char escaped = escapedMap[static_cast<unsigned char>(*ptr)]) {
-          result.push_back(escaped);
-          ++ptr;
-        } else if (*ptr == 'u') {
-          ++ptr;
-          if (end - ptr < 4)
-            THROW_JSON_ERROR("Incomplete unicode escape");
-
-          const uint16_t first = parseHex4();
-          uint32_t code = first;
-
-          if (0xD800 <= first && first <= 0xDBFF) {
-            if (end - ptr < 6)
-              THROW_JSON_ERROR("Unexpected end of input: missing low surrogate after high surrogate (\\uXXXX)");
-
-            if (ptr[0] != '\\' || ptr[1] != 'u')
-              THROW_JSON_ERROR("Expected '\\u' after high surrogate, found '" + std::string(ptr, ptr + 2) + "'");
-
-            ptr += 2;
-            const uint16_t second = parseHex4();
-
-            if (second < 0xDC00 || second > 0xDFFF)
-              THROW_JSON_ERROR(
-              "Invalid low surrogate: expected value in range \\uDC00..\\uDFFF, got \\u" + hexString(second)
-            );
-
-            code = 0x10000 + ((first - 0xD800) << 10 | second - 0xDC00);
-          } else if (0xDC00 <= first && first <= 0xDFFF)
-            THROW_JSON_ERROR("Unexpected low surrogate \\u" + hexString(first) + " without preceding high surrogate");
-
-          if (code < 0x80)
-            result.push_back(static_cast<char>(code));
-          else if (code < 0x800) {
-            result.push_back(static_cast<char>(0xC0 | (code >> 6)));
-            result.push_back(static_cast<char>(0x80 | (code & 0x3F)));
-          } else if (code < 0x10000) {
-            result.push_back(static_cast<char>(0xE0 | (code >> 12)));
-            result.push_back(static_cast<char>(0x80 | (code >> 6 & 0x3F)));
-            result.push_back(static_cast<char>(0x80 | (code & 0x3F)));
-          } else {
-            result.push_back(static_cast<char>(0xF0 | (code >> 18)));
-            result.push_back(static_cast<char>(0x80 | (code >> 12 & 0x3F)));
-            result.push_back(static_cast<char>(0x80 | (code >> 6 & 0x3F)));
-            result.push_back(static_cast<char>(0x80 | (code & 0x3F)));
-          }
-        } else
-          THROW_JSON_ERROR("Invalid escape sequence");
-      } else {
-        const char *runStart = ptr;
-        while (ptr < end && !stringStopChar[static_cast<unsigned char>(*ptr)])
-          ++ptr;
-        if (ptr < end && *ptr != '"' && *ptr != '\\')
-          THROW_JSON_ERROR("Control character in string");
-        if (result.empty() && ptr == end) {
-          #if DEBUG
-          column += ptr - start;
-          #endif
-          return JSON(std::string(runStart, static_cast<size_t>(ptr - runStart)));
-        }
-        result.append(runStart, ptr - runStart);
+      if (const auto runLen = static_cast<size_t>(ptr - runStart); runLen > 0) {
+        std::memcpy(out, runStart, runLen);
+        out += runLen;
       }
+
+      if (ptr == end)
+        break;
+
+      ++ptr;
+      if (ptr == end)
+        THROW_JSON_ERROR("Unterminated escape sequence");
+
+      if (const char escaped = escapedMap[static_cast<unsigned char>(*ptr)]) {
+        *out++ = escaped;
+        ++ptr;
+      } else if (*ptr == 'u') {
+        ++ptr;
+        if (end - ptr < 4)
+          THROW_JSON_ERROR("Incomplete unicode escape");
+
+        const uint16_t first = parseHex4();
+        uint32_t code = first;
+
+        if (0xD800 <= first && first <= 0xDBFF) {
+          if (end - ptr < 6)
+            THROW_JSON_ERROR("Unexpected end of input: missing low surrogate after high surrogate (\\uXXXX)");
+
+          if (ptr[0] != '\\' || ptr[1] != 'u')
+            THROW_JSON_ERROR("Expected '\\u' after high surrogate, found '" + std::string(ptr, ptr + 2) + "'");
+
+          ptr += 2;
+          const uint16_t second = parseHex4();
+
+          if (second < 0xDC00 || second > 0xDFFF)
+            THROW_JSON_ERROR(
+            "Invalid low surrogate: expected value in range \\uDC00..\\uDFFF, got \\u" + hexString(second)
+          );
+
+          code = 0x10000 + ((first - 0xD800) << 10 | second - 0xDC00);
+        } else if (0xDC00 <= first && first <= 0xDFFF)
+          THROW_JSON_ERROR("Unexpected low surrogate \\u" + hexString(first) + " without preceding high surrogate");
+
+        if (code < 0x80)
+          *out++ = static_cast<char>(code);
+        else if (code < 0x800) {
+          *out++ = static_cast<char>(0xC0 | code >> 6);
+          *out++ = static_cast<char>(0x80 | code & 0x3F);
+        } else if (code < 0x10000) {
+          *out++ = static_cast<char>(0xE0 | code >> 12);
+          *out++ = static_cast<char>(0x80 | code >> 6 & 0x3F);
+          *out++ = static_cast<char>(0x80 | code & 0x3F);
+        } else {
+          *out++ = static_cast<char>(0xF0 | code >> 18);
+          *out++ = static_cast<char>(0x80 | code >> 12 & 0x3F);
+          *out++ = static_cast<char>(0x80 | code >> 6 & 0x3F);
+          *out++ = static_cast<char>(0x80 | code & 0x3F);
+        }
+      } else
+        THROW_JSON_ERROR("Invalid escape sequence");
     }
 
     #if DEBUG
     column += ptr - start;
     #endif
-    return JSON(result);
+    result.resize(static_cast<size_t>(out - result.data()));
+    return result;
+  }
+
+  JSON JSONParser::parseString() {
+    return std::move(parseRawString());
   }
 
   uint16_t JSONParser::parseHex4() {

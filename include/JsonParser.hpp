@@ -134,6 +134,8 @@ namespace Serde {
       /// Parses the current number in the string_view
       JSON parseNumber();
       /// Parses the current string in the string_view
+      std::string parseRawString();
+      /// Parses the current string in the string_view and converts it to a JSON object
       JSON parseString();
 
       /// Converts a hex of size 4 into a uint16_t

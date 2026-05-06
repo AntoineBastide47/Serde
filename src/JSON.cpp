@@ -45,6 +45,9 @@ namespace Serde {
       data = std::make_unique<JSONArray>(values);
   }
 
+  JSON::JSON(std::string &&value)
+    : type(String), data(std::move(value)) {}
+
   JSON::JSON(const JSON &other)
     : type(other.type) {
     switch (type) {

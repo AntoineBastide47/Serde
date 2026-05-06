@@ -50,9 +50,11 @@ namespace Serde {
       /// Creates a JSON string value from a single character
       JSON(char value);
       /// Creates a JSON string value from a const char *
-      JSON(const char * value);
+      JSON(const char *value);
       /// Assigns the given array or object to this instance.
       JSON(const std::initializer_list<JSON> &values);
+
+      JSON(std::string &&value);
 
       JSON(const JSON &other);
       JSON &operator=(const JSON &other);
@@ -402,8 +404,8 @@ namespace Serde {
     private:
       JSONType type;
       std::variant<null_t, bool, double, std::string,
-                   std::unique_ptr<JSONArray>,
-                   std::unique_ptr<JSONObject>> data;
+        std::unique_ptr<JSONArray>,
+        std::unique_ptr<JSONObject>> data;
 
       /// @returns true if the instance is an array or an object, false if not
       [[nodiscard]] bool isComplexType() const;
