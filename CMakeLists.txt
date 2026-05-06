@@ -35,9 +35,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
     target_compile_options(${PROJECT_NAME} PRIVATE
         -O3 -DNDEBUG -finline-functions -fomit-frame-pointer
-        -ffunction-sections -fdata-sections -flto -Wno-c99-designator
+        -ffunction-sections -fdata-sections -Wno-c99-designator
     )
-    target_link_options(${PROJECT_NAME} PRIVATE -Wl,-O2)
     set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:${PROJECT_NAME}>)
 elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")

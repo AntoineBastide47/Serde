@@ -50,5 +50,5 @@ elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")
     endif ()
 endif ()
 
-include(${CMAKE_SOURCE_DIR}/PlatformDetection.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../PlatformDetection.cmake)
 setup_platform_detection(${PROJECT_NAME})
