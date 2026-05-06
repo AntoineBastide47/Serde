@@ -294,28 +294,32 @@ Example output (Apple M3 Max, Release):
 ```
 file                                    min     median        p99        max   throughput
 -----------------------------------------------------------------------------------------
-config-lockfile.json                10.87 ms    11.11 ms    12.06 ms    12.06 ms     449.9 MB/s
-duplicate-keys.json                  9.14 ms     9.35 ms    10.24 ms    10.24 ms     535.0 MB/s
-escaped-strings.json                12.07 ms    12.32 ms    13.03 ms    13.03 ms     405.9 MB/s
-large-array-objects.json             9.44 ms     9.66 ms    11.37 ms    11.37 ms     517.6 MB/s
-large-array-people-records.json      6.82 ms     6.95 ms     8.52 ms     8.52 ms     704.0 MB/s
-large-object-many-keys.json          8.52 ms     8.71 ms    11.01 ms    11.01 ms     573.8 MB/s
-nested.json                          2.93 ms     3.04 ms     3.38 ms     3.38 ms    1654.2 MB/s
-numbers-heavy.json                  14.04 ms    14.37 ms    16.68 ms    16.68 ms     348.0 MB/s
-trace-events.json                   15.80 ms    16.14 ms    18.77 ms    18.77 ms     309.9 MB/s
-unicode-strings.json                 5.69 ms     5.77 ms     6.37 ms     6.37 ms     866.4 MB/s
+config-lockfile.json                 7.67 ms     8.04 ms     9.10 ms     9.10 ms     622.1 MB/s
+duplicate-keys.json                  6.50 ms     6.83 ms     8.41 ms     8.41 ms     732.4 MB/s
+escaped-strings.json                 9.39 ms     9.63 ms    10.65 ms    10.65 ms     519.0 MB/s
+large-array-objects.json             7.14 ms     7.40 ms     9.18 ms     9.18 ms     675.6 MB/s
+large-array-people-records.json      4.44 ms     4.55 ms     5.42 ms     5.42 ms    1076.5 MB/s
+large-object-many-keys.json          5.84 ms     6.07 ms     7.80 ms     7.80 ms     823.4 MB/s
+nested.json                          0.59 ms     0.61 ms     0.80 ms     0.80 ms    8232.8 MB/s
+numbers-heavy.json                  13.67 ms    14.10 ms    16.16 ms    16.16 ms     354.6 MB/s
+trace-events.json                   13.52 ms    13.90 ms    16.57 ms    16.57 ms     359.8 MB/s
+unicode-strings.json                 2.90 ms     3.05 ms     3.62 ms     3.62 ms    1639.0 MB/s
 ```
 
 Example output (GitHub CI 2 core x86_64 ~2-3GHz, Release):
 ```
 file                                    min     median        p99        max   throughput
 -----------------------------------------------------------------------------------------
-config-lockfile.json                22.73 ms    25.36 ms    33.09 ms    33.09 ms     197.1 MB/s
-duplicate-keys.json                 29.34 ms    30.56 ms    58.46 ms    58.46 ms     163.6 MB/s
-escaped-strings.json                18.22 ms    18.36 ms    20.36 ms    20.36 ms     272.3 MB/s
-large-array-objects.json            32.56 ms    35.16 ms    42.29 ms    42.29 ms     142.2 MB/s
-large-array-people-records.json     14.35 ms    14.54 ms    20.28 ms    20.28 ms     336.6 MB/s
-large-object-many-keys.json         17.25 ms    17.56 ms    20.07 ms    20.07 ms     284.7 MB/s
+config-lockfile.json                16.23 ms    22.17 ms    23.01 ms    23.01 ms     225.5 MB/s
+duplicate-keys.json                 21.95 ms    22.19 ms    23.49 ms    23.49 ms     225.3 MB/s
+escaped-strings.json                12.76 ms    12.80 ms    15.12 ms    15.12 ms     390.5 MB/s
+large-array-objects.json            24.03 ms    24.25 ms    26.65 ms    26.65 ms     206.2 MB/s
+large-array-people-records.json     10.32 ms    10.41 ms    10.66 ms    10.66 ms     469.9 MB/s
+large-object-many-keys.json         19.08 ms    19.26 ms    20.14 ms    20.14 ms     259.7 MB/s
+nested.json                          1.26 ms     1.27 ms     1.31 ms     1.31 ms    3972.8 MB/s
+numbers-heavy.json                  38.50 ms    38.70 ms    39.54 ms    39.54 ms     129.2 MB/s
+trace-events.json                   28.70 ms    29.19 ms    44.57 ms    44.57 ms     171.3 MB/s
+unicode-strings.json                 5.89 ms     5.93 ms     6.05 ms     6.05 ms     843.2 MB/s
 ```
 
 ---
