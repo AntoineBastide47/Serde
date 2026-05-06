@@ -308,13 +308,14 @@ unicode-strings.json                 5.69 ms     5.77 ms     6.37 ms     6.37 ms
 
 Example output (GitHub CI 2 core x86_64 ~2-3GHz, Release):
 ```
-file                       min     median        p99        max   throughput
-----------------------------------------------------------------------------
-5MB.json               17.31 ms    17.62 ms    18.09 ms    18.09 ms     277.8 MB/s
-
-Peak RSS before : 13824 KB
-Peak RSS after  : 24208 KB
-Delta           : 10384 KB
+file                                    min     median        p99        max   throughput
+-----------------------------------------------------------------------------------------
+config-lockfile.json                22.73 ms    25.36 ms    33.09 ms    33.09 ms     197.1 MB/s
+duplicate-keys.json                 29.34 ms    30.56 ms    58.46 ms    58.46 ms     163.6 MB/s
+escaped-strings.json                18.22 ms    18.36 ms    20.36 ms    20.36 ms     272.3 MB/s
+large-array-objects.json            32.56 ms    35.16 ms    42.29 ms    42.29 ms     142.2 MB/s
+large-array-people-records.json     14.35 ms    14.54 ms    20.28 ms    20.28 ms     336.6 MB/s
+large-object-many-keys.json         17.25 ms    17.56 ms    20.07 ms    20.07 ms     284.7 MB/s
 ```
 
 ---
