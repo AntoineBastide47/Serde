@@ -4,6 +4,7 @@
 // Date: 07.07.2025
 //
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 
@@ -56,6 +57,25 @@ namespace Serde {
     t[static_cast<uint8_t>('\\')] = true;
     return t;
   }();
+
+  static inline bool isEscapedQuote(const char *quote, const char *stringStart) {
+    size_t backslashes = 0;
+    for (const char *p = quote; p > stringStart && p[-1] == '\\'; --p)
+      ++backslashes;
+    return (backslashes & 1) != 0;
+  }
+
+  static JSON makeArray(const size_t reserve = 8) {
+    JSON json = JSON::Array();
+    json.Reserve(reserve);
+    return json;
+  }
+
+  static JSON makeObject() {
+    JSON json = JSON::Object();
+    json.Reserve(8);
+    return json;
+  }
 
   JSON JSONParser::Parse() {
     JSON json;
@@ -168,12 +188,12 @@ namespace Serde {
           if (++depth > MAX_NESTING_DEPTH)
             THROW_JSON_ERROR("Nesting depth limit exceeded");
           if (stack.back()->IsObject())
-            stack.push_back(setObjectValue(JSON::Object()));
+            stack.push_back(setObjectValue(makeObject()));
           else if (stack.back()->IsArray()) {
-            setArrayValue(JSON::Object());
+            setArrayValue(makeObject());
             stack.push_back(&stack.back()->Back());
           } else if (stack.size() == 1)
-            *stack.back() = JSON::Object();
+            *stack.back() = makeObject();
           foundData = true;
           break;
         case TOKEN_OBJECT_END:
@@ -196,12 +216,14 @@ namespace Serde {
           if (++depth > MAX_NESTING_DEPTH)
             THROW_JSON_ERROR("Nesting depth limit exceeded");
           if (stack.back()->IsObject())
-            stack.push_back(setObjectValue(JSON::Array()));
+            stack.push_back(setObjectValue(makeArray()));
           else if (stack.back()->IsArray()) {
-            setArrayValue(JSON::Array());
+            setArrayValue(makeArray());
             stack.push_back(&stack.back()->Back());
-          } else if (stack.size() == 1)
-            *stack.back() = JSON::Array();
+          } else if (stack.size() == 1) {
+            const size_t rootReserve = std::max<size_t>(16, buffered / 512);
+            *stack.back() = makeArray(rootReserve);
+          }
           foundData = true;
           break;
         case TOKEN_ARRAY_END:
@@ -241,28 +263,20 @@ namespace Serde {
         case TOKEN_STRING: {
           ptr = p;
           const char *q = p + 1;
-          bool escaped = false;
+          bool needsDecode = false;
           bool done = false;
           while (q < bufferEnd) {
-            if (escaped) {
-              escaped = false;
-              ++q;
-              continue;
-            }
-            if (*q == '\\') {
-              escaped = true;
-              ++q;
-              continue;
-            }
-            if (*q == '"') {
+            if (*q == '"' && (q == p + 1 || q[-1] != '\\' || !isEscapedQuote(q, p + 1))) {
               end = q;
-              JSON json = parseString();
+              JSON json = needsDecode
+                ? parseString()
+                : JSON(std::string(p + 1, static_cast<size_t>(q - p - 1)));
               foundData = true;
 
               if (stack.back()->IsObject()) {
                 if (!pendingKeyIsSet) {
                   if (!candidateKeyIsSet) {
-                    candidateKey = json.GetString();
+                    candidateKey = std::move(json.GetString());
                     candidateKeyIsSet = true;
                   } else
                     THROW_JSON_ERROR("Missing a colon after a key");
@@ -280,6 +294,10 @@ namespace Serde {
               done = true;
               break;
             }
+            if (static_cast<unsigned char>(*q) <= 0x1F)
+              THROW_JSON_ERROR("Control character in string");
+            if (*q == '\\')
+              needsDecode = true;
             ++q;
           }
           if (!done) {
@@ -393,17 +411,6 @@ namespace Serde {
       THROW_JSON_ERROR("Expected a key before adding an inner value");
 
     auto &entries = stackBack->GetObject();
-    for (auto &[k, v]: entries) {
-      if (k == pendingKey) {
-        v = std::move(json);
-        pendingKey.clear();
-        candidateKey.clear();
-        pendingKeyIsSet = false;
-        commaDetected = false;
-        return &v;
-      }
-    }
-
     entries.emplace_back(std::move(pendingKey), std::move(json));
     pendingKey.clear();
     candidateKey.clear();
@@ -568,6 +575,12 @@ namespace Serde {
           ++ptr;
         if (ptr < end && *ptr != '"' && *ptr != '\\')
           THROW_JSON_ERROR("Control character in string");
+        if (result.empty() && ptr == end) {
+          #if DEBUG
+          column += ptr - start;
+          #endif
+          return JSON(std::string(runStart, static_cast<size_t>(ptr - runStart)));
+        }
         result.append(runStart, ptr - runStart);
       }
     }

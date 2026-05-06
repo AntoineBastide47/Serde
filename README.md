@@ -294,11 +294,11 @@ Example output (Apple M3 Max, Release):
 ```
 file                       min     median        p99        max   throughput
 ----------------------------------------------------------------------------
-5MB.json                8.74 ms     8.89 ms     9.28 ms     9.28 ms     550.7 MB/s
+5MB.json                6.89 ms     7.04 ms     8.35 ms     8.35 ms     695.5 MB/s
 
-Peak RSS before : 11040 KB
-Peak RSS after  : 25888 KB
-Delta           : 14848 KB
+Peak RSS before : 11504 KB
+Peak RSS after  : 26096 KB
+Delta           : 14592 KB
 ```
 
 Example output (GitHub CI 2 core x86_64 ~2-3GHz, Release):
