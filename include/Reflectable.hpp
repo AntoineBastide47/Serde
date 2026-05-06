@@ -1,5 +1,5 @@
 //
-// Serializable.hpp
+// Reflectable.hpp
 // Author: Antoine Bastide
 // Date: 19.06.2025
 //

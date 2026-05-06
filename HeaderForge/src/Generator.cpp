@@ -1,5 +1,5 @@
 //
-// SerializerInjector.cpp
+// Generator.cpp
 // Author: Antoine Bastide
 // Date: 18.06.2025
 //

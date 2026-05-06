@@ -1,5 +1,5 @@
 //
-// Utils.h
+// Utils.hpp
 // Author: Antoine Bastide
 // Date: 08/03/2025
 //

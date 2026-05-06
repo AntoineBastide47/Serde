@@ -301,6 +301,17 @@ Peak RSS after  : 25888 KB
 Delta           : 14848 KB
 ```
 
+Example output (GitHub CI 2 core x86_64 ~2-3GHz, Release):
+```
+file                       min     median        p99        max   throughput
+----------------------------------------------------------------------------
+5MB.json               17.31 ms    17.62 ms    18.09 ms    18.09 ms     277.8 MB/s
+
+Peak RSS before : 13824 KB
+Peak RSS after  : 24208 KB
+Delta           : 10384 KB
+```
+
 ---
 
 ## serde.sh reference

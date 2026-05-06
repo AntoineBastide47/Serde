@@ -1,5 +1,5 @@
 //
-// JsonValue.cpp
+// JSON.cpp
 // Author: Antoine Bastide
 // Date: 05.07.2025
 //
@@ -288,9 +288,10 @@ namespace Serde {
       GetArray().reserve(size);
     else if (type == object)
       GetObject().reserve(size);
-    else
+    else {
       Log::Error("JSON::Reserve called on non-array and non-object type");
-    throw std::logic_error("");
+      throw std::logic_error("");
+    }
   }
 
   void JSON::ReserveAndResize(const size_t size) {

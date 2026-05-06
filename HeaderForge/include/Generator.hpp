@@ -1,5 +1,5 @@
 //
-// SerializerInjector.hpp
+// Generator.hpp
 // Author: Antoine Bastide
 // Date: 18.06.2025
 //

@@ -1,5 +1,5 @@
 //
-// JsonValue.hpp
+// JSON.hpp
 // Author: Antoine Bastide
 // Date: 05.07.2025
 //
