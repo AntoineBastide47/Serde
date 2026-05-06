@@ -1,20 +1,65 @@
-name: Serde Benchmark
+name: Serde CI
 
 on: [push, pull_request, workflow_dispatch]
 
 jobs:
+  test:
+    name: Test (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: Linux
+          - os: macos-latest
+            name: macOS
+          - os: windows-latest
+            name: Windows x64
+            arch: x64
+          - os: windows-latest
+            name: Windows x86
+            arch: Win32
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y cmake llvm-17-dev libclang-17-dev
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install llvm
+          echo "CMAKE_PREFIX_PATH=$(brew --prefix llvm)" >> $GITHUB_ENV
+
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: choco install llvm cmake --confirm
+
+      - name: Set LLVM and architecture (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          echo "CMAKE_PREFIX_PATH=C:/Program Files/LLVM" >> $GITHUB_ENV
+          echo "CMAKE_GENERATOR_PLATFORM=${{ matrix.arch }}" >> $GITHUB_ENV
+
+      - name: Run tests
+        shell: bash
+        run: ./serde.sh test
+
   bench:
     name: Benchmark (ubuntu-latest)
     runs-on: ubuntu-latest
+    needs: test
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
         run: sudo apt-get install -y cmake llvm-17-dev libclang-17-dev
-
-      - name: Run tests
-        run: ./serde.sh test
 
       - name: Run benchmark
         run: ./serde.sh bench | tee bench-output.txt
