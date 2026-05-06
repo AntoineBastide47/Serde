@@ -7,6 +7,8 @@
 #ifndef JSON_PARSER_HPP
 #define JSON_PARSER_HPP
 
+#include <array>
+#include <cstdint>
 #include <iosfwd>
 #include <istream>
 #include <string_view>
@@ -56,33 +58,35 @@ namespace Serde {
         TOKEN_NEWLINE,
       };
 
-      static constexpr TokenType tokenTable[256] = {
-        ['{'] = TOKEN_OBJECT_START,
-        ['}'] = TOKEN_OBJECT_END,
-        ['['] = TOKEN_ARRAY_START,
-        [']'] = TOKEN_ARRAY_END,
-        [':'] = TOKEN_COLON,
-        [','] = TOKEN_COMMA,
-        ['"'] = TOKEN_STRING,
-        ['-'] = TOKEN_NUMBER_START,
-        ['0'] = TOKEN_NUMBER_START,
-        ['1'] = TOKEN_NUMBER_START,
-        ['2'] = TOKEN_NUMBER_START,
-        ['3'] = TOKEN_NUMBER_START,
-        ['4'] = TOKEN_NUMBER_START,
-        ['5'] = TOKEN_NUMBER_START,
-        ['6'] = TOKEN_NUMBER_START,
-        ['7'] = TOKEN_NUMBER_START,
-        ['8'] = TOKEN_NUMBER_START,
-        ['9'] = TOKEN_NUMBER_START,
-        ['t'] = TOKEN_LITERAL_START,
-        ['f'] = TOKEN_LITERAL_START,
-        ['n'] = TOKEN_LITERAL_START,
-        [' '] = TOKEN_WHITESPACE,
-        ['\t'] = TOKEN_WHITESPACE,
-        ['\r'] = TOKEN_WHITESPACE,
-        ['\n'] = TOKEN_NEWLINE,
-      };
+      static constexpr std::array<TokenType, 256> tokenTable = []() noexcept {
+        std::array<TokenType, 256> t{};
+        t[static_cast<uint8_t>('{')] = TOKEN_OBJECT_START;
+        t[static_cast<uint8_t>('}')] = TOKEN_OBJECT_END;
+        t[static_cast<uint8_t>('[')] = TOKEN_ARRAY_START;
+        t[static_cast<uint8_t>(']')] = TOKEN_ARRAY_END;
+        t[static_cast<uint8_t>(':')] = TOKEN_COLON;
+        t[static_cast<uint8_t>(',')] = TOKEN_COMMA;
+        t[static_cast<uint8_t>('"')] = TOKEN_STRING;
+        t[static_cast<uint8_t>('-')] = TOKEN_NUMBER_START;
+        t[static_cast<uint8_t>('0')] = TOKEN_NUMBER_START;
+        t[static_cast<uint8_t>('1')] = TOKEN_NUMBER_START;
+        t[static_cast<uint8_t>('2')] = TOKEN_NUMBER_START;
+        t[static_cast<uint8_t>('3')] = TOKEN_NUMBER_START;
+        t[static_cast<uint8_t>('4')] = TOKEN_NUMBER_START;
+        t[static_cast<uint8_t>('5')] = TOKEN_NUMBER_START;
+        t[static_cast<uint8_t>('6')] = TOKEN_NUMBER_START;
+        t[static_cast<uint8_t>('7')] = TOKEN_NUMBER_START;
+        t[static_cast<uint8_t>('8')] = TOKEN_NUMBER_START;
+        t[static_cast<uint8_t>('9')] = TOKEN_NUMBER_START;
+        t[static_cast<uint8_t>('t')] = TOKEN_LITERAL_START;
+        t[static_cast<uint8_t>('f')] = TOKEN_LITERAL_START;
+        t[static_cast<uint8_t>('n')] = TOKEN_LITERAL_START;
+        t[static_cast<uint8_t>(' ')] = TOKEN_WHITESPACE;
+        t[static_cast<uint8_t>('\t')] = TOKEN_WHITESPACE;
+        t[static_cast<uint8_t>('\r')] = TOKEN_WHITESPACE;
+        t[static_cast<uint8_t>('\n')] = TOKEN_NEWLINE;
+        return t;
+      }();
 
       /// The current istream being parsed
       std::istream *stream;

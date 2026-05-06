@@ -1,13 +1,6 @@
 name: Serde Benchmark
 
-on:
-  push:
-    paths:
-      - 'tools/Serde/**'
-  pull_request:
-    paths:
-      - 'tools/Serde/**'
-  workflow_dispatch:
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
   bench:
@@ -18,15 +11,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: sudo apt-get install -y cmake
+        run: sudo apt-get install -y cmake llvm-17-dev libclang-17-dev
 
       - name: Run benchmark
-        working-directory: tools/Serde
         run: ./serde.sh bench | tee bench-output.txt
 
       - name: Post results to job summary
         if: always()
-        working-directory: tools/Serde
         run: |
           echo "## Serde Benchmark Results" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY

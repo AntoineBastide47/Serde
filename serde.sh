@@ -88,7 +88,7 @@ configure() {
     -DBUILD_SHARED_LIBS="$SHARED" \
     -DCMAKE_CXX_FLAGS="" \
     -DCMAKE_EXE_LINKER_FLAGS="" \
-    "${extra_flags[@]}"
+    "${extra_flags[@]+"${extra_flags[@]}"}"
 }
 
 # ---- build ------------------------------------------------------------------

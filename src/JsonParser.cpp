@@ -4,6 +4,9 @@
 // Date: 07.07.2025
 //
 
+#include <cmath>
+#include <cstring>
+
 #include "JsonParser.hpp"
 #include "JSON.hpp"
 
@@ -24,25 +27,35 @@ namespace Serde {
       ptr(nullptr), end(nullptr), candidateKeyIsSet(false), pendingKeyIsSet(),
       commaDetected(true), foundData(false), depth(0), line(1), column(1) {}
 
-  static constexpr bool validNumberChar[256] = {
-    ['0'] = true, ['1'] = true, ['2'] = true, ['3'] = true, ['4'] = true,
-    ['5'] = true, ['6'] = true, ['7'] = true, ['8'] = true, ['9'] = true,
-    ['e'] = true, ['E'] = true, ['-'] = true, ['+'] = true, ['.'] = true
-  };
+  static constexpr auto validNumberChar = []() noexcept {
+    std::array<bool, 256> t{};
+    for (const uint8_t c : {
+      '0','1','2','3','4','5','6','7','8','9','e','E','-','+','.'
+    }) t[c] = true;
+    return t;
+  }();
 
-  static constexpr char escapedMap[256] = {
-    ['"'] = '"', ['\\'] = '\\', ['/'] = '/', ['b'] = '\b',
-    ['f'] = '\f', ['n'] = '\n', ['r'] = '\r', ['t'] = '\t'
-  };
+  static constexpr auto escapedMap = []() noexcept {
+    std::array<char, 256> t{};
+    t[static_cast<uint8_t>('"')]  = '"';
+    t[static_cast<uint8_t>('\\')] = '\\';
+    t[static_cast<uint8_t>('/')]  = '/';
+    t[static_cast<uint8_t>('b')]  = '\b';
+    t[static_cast<uint8_t>('f')]  = '\f';
+    t[static_cast<uint8_t>('n')]  = '\n';
+    t[static_cast<uint8_t>('r')]  = '\r';
+    t[static_cast<uint8_t>('t')]  = '\t';
+    return t;
+  }();
 
   // Marks characters that terminate a plain string run: control chars (0x00-0x1F), '"', '\\'
-  static constexpr bool stringStopChar[256] = {
-    [0]=1,[1]=1,[2]=1,[3]=1,[4]=1,[5]=1,[6]=1,[7]=1,
-    [8]=1,[9]=1,[10]=1,[11]=1,[12]=1,[13]=1,[14]=1,[15]=1,
-    [16]=1,[17]=1,[18]=1,[19]=1,[20]=1,[21]=1,[22]=1,[23]=1,
-    [24]=1,[25]=1,[26]=1,[27]=1,[28]=1,[29]=1,[30]=1,[31]=1,
-    ['"'] = 1, ['\\'] = 1,
-  };
+  static constexpr auto stringStopChar = []() noexcept {
+    std::array<bool, 256> t{};
+    for (uint8_t i = 0; i <= 0x1F; ++i) t[i] = true;
+    t[static_cast<uint8_t>('"')]  = true;
+    t[static_cast<uint8_t>('\\')] = true;
+    return t;
+  }();
 
   JSON JSONParser::Parse() {
     JSON json;

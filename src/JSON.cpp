@@ -4,6 +4,7 @@
 // Date: 05.07.2025
 //
 
+#include <algorithm>
 #include <cmath>
 #include <sstream>
 
