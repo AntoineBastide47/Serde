@@ -36,13 +36,27 @@ jobs:
           brew install llvm
           echo "CMAKE_PREFIX_PATH=$(brew --prefix llvm)" >> $GITHUB_ENV
 
-      - name: Install dependencies (Windows)
+      - name: Cache LLVM (Windows)
+        if: runner.os == 'Windows'
+        id: cache-llvm
+        uses: actions/cache@v4
+        with:
+          path: C:\LLVM
+          key: llvm-17.0.6-${{ matrix.arch }}
+
+      - name: Install LLVM (Windows)
+        if: runner.os == 'Windows'
+        id: install-llvm
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "17.0.6"
+          directory: C:\LLVM
+          cached: ${{ steps.cache-llvm.outputs.cache-hit }}
+
+      - name: Configure paths (Windows)
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          $installer = "$env:TEMP\llvm-installer.exe"
-          Invoke-WebRequest -Uri "${{ matrix.llvm_installer }}" -OutFile $installer
-          Start-Process -Wait -FilePath $installer -ArgumentList "/S /D=C:\LLVM"
           choco install cmake --confirm
           Add-Content $env:GITHUB_ENV "LLVM_DIR=C:\LLVM\lib\cmake\llvm"
           Add-Content $env:GITHUB_ENV "Clang_DIR=C:\LLVM\lib\cmake\clang"
