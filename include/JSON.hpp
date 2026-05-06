@@ -68,7 +68,7 @@ namespace Serde {
         type = String;
         if constexpr (std::is_same_v<std::decay_t<T>, char>)
           data = std::string(1, value);
-        else if constexpr (std::is_same_v<std::decay_t<T>, const char *>)
+        else if constexpr (std::is_same_v<std::decay_t<T>, const char *> || std::is_same_v<std::decay_t<T>, char *>)
           data = std::string(value);
         else
           data = static_cast<std::string>(value);

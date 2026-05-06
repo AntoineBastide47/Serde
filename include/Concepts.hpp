@@ -23,7 +23,9 @@ namespace Serde {
   template<typename T> concept IsNonOwningString =
       std::is_same_v<std::remove_cvref_t<T>, std::string_view> ||
       std::is_same_v<std::remove_cvref_t<T>, const char *> ||
-      std::is_same_v<std::remove_cvref_t<T>, char *>;
+      std::is_same_v<std::remove_cvref_t<T>, char *> ||
+      (std::is_array_v<std::remove_cvref_t<T>> &&
+       std::is_same_v<std::remove_cv_t<std::remove_extent_t<std::remove_cvref_t<T>>>, char>);
 
   template<typename T> concept IsString = std::is_same_v<std::remove_cvref_t<T>, std::string> || IsNonOwningString<T>;
 

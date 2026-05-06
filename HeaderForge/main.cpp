@@ -4,18 +4,19 @@
 #include <ranges>
 #include <regex>
 #include <set>
+#include <unordered_map>
 
 #include "Generator.hpp"
 #include "Parser.hpp"
 
 #define ALL_IN_ONE_CPP "allInOne.cpp"
 #define ALL_IN_ONE_II "allInOne.ii"
-#define LAST_PROCESSING_TIMES_TXT "./Engine/lastProcessingTimes.txt"
+#define LAST_PROCESSING_TIMES_TXT "./lastProcessingTimes.txt"
 
 #ifdef MACOS
 #define OS_INCLUDES "-I/opt/homebrew/include"
-#else
-#define OS_INCLUDES ""
+#elif LINUX
+#define OS_INCLUDES "-I/usr/local/include"
 #endif
 
 #define PREPROCESS_CMD_START "clang++ -std=c++20 -E -DHEADER_FORGE_ENABLE_ANNOTATIONS "
@@ -88,9 +89,6 @@ int main(const int argc, char *argv[]) {
     } else if (parsingCompilerArgs)
       compilerArgs.push_back(arg);
   }
-
-  if (!fs::exists("./Engine"))
-    fs::create_directory("./Engine");
 
   bool overrideNeedsProcessing = !fs::exists(LAST_PROCESSING_TIMES_TXT);
   std::unordered_map<std::string, std::string> fileProcessingTimes;

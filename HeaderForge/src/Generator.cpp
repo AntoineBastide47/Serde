@@ -4,12 +4,14 @@
 // Date: 18.06.2025
 //
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <ranges>
 #include <regex>
 #include <set>
 #include <sstream>
+#include <unordered_map>
 
 #include "Generator.hpp"
 #include "Parser.hpp"
