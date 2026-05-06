@@ -292,13 +292,18 @@ Runs 5 warmup + 100 measured iterations and reports min / median / p99 / max lat
 Example output (Apple M3 Max, Release):
 
 ```
-file                       min     median        p99        max   throughput
-----------------------------------------------------------------------------
-5MB.json                6.89 ms     7.04 ms     8.35 ms     8.35 ms     695.5 MB/s
-
-Peak RSS before : 11504 KB
-Peak RSS after  : 26096 KB
-Delta           : 14592 KB
+file                                    min     median        p99        max   throughput
+-----------------------------------------------------------------------------------------
+config-lockfile.json                10.87 ms    11.11 ms    12.06 ms    12.06 ms     449.9 MB/s
+duplicate-keys.json                  9.14 ms     9.35 ms    10.24 ms    10.24 ms     535.0 MB/s
+escaped-strings.json                12.07 ms    12.32 ms    13.03 ms    13.03 ms     405.9 MB/s
+large-array-objects.json             9.44 ms     9.66 ms    11.37 ms    11.37 ms     517.6 MB/s
+large-array-people-records.json      6.82 ms     6.95 ms     8.52 ms     8.52 ms     704.0 MB/s
+large-object-many-keys.json          8.52 ms     8.71 ms    11.01 ms    11.01 ms     573.8 MB/s
+nested.json                          2.93 ms     3.04 ms     3.38 ms     3.38 ms    1654.2 MB/s
+numbers-heavy.json                  14.04 ms    14.37 ms    16.68 ms    16.68 ms     348.0 MB/s
+trace-events.json                   15.80 ms    16.14 ms    18.77 ms    18.77 ms     309.9 MB/s
+unicode-strings.json                 5.69 ms     5.77 ms     6.37 ms     6.37 ms     866.4 MB/s
 ```
 
 Example output (GitHub CI 2 core x86_64 ~2-3GHz, Release):

@@ -146,10 +146,20 @@ do_test() {
 
 # ---- benchmark --------------------------------------------------------------
 do_bench() {
-  local default_file="$SCRIPT_DIR/tests/5MB.json"
+  local bench_dir="$SCRIPT_DIR/tests/bench"
+  local default_files=()
 
-  if [[ ! -f "$default_file" ]]; then
-    echo "ERROR: benchmark file not found: $default_file"
+  if [[ ! -d "$bench_dir" ]]; then
+    echo "ERROR: benchmark directory not found: $bench_dir"
+    exit 1
+  fi
+
+  shopt -s nullglob
+  default_files=("$bench_dir"/*.json)
+  shopt -u nullglob
+
+  if [[ ${#default_files[@]} -eq 0 ]]; then
+    echo "ERROR: no benchmark files found in: $bench_dir"
     exit 1
   fi
 
@@ -161,7 +171,7 @@ do_bench() {
   done
 
   echo "==> Configuring with benchmark ($BUILD_TYPE)..."
-  configure -DSERDE_BUILD_BENCHMARK=ON
+  configure -DSERDE_BUILD_TESTS=OFF -DHF_BUILD_TESTS=OFF -DSERDE_BUILD_BENCHMARK=ON
   echo "==> Building with $JOBS jobs..."
   cmake --build "$BUILD_DIR" --target benchmark
 
@@ -173,7 +183,7 @@ do_bench() {
 
   echo "==> Running benchmark..."
   echo ""
-  "$bench_bin" "$default_file" "${EXTRA_BENCH_FILES[@]+"${EXTRA_BENCH_FILES[@]}"}"
+  "$bench_bin" "${default_files[@]}" "${EXTRA_BENCH_FILES[@]+"${EXTRA_BENCH_FILES[@]}"}"
 }
 
 # ---- clean ------------------------------------------------------------------

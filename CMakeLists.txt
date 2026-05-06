@@ -106,11 +106,10 @@ if(SERDE_BUILD_BENCHMARK)
     target_link_libraries(benchmark PRIVATE ${PROJECT_NAME})
     target_compile_options(benchmark PRIVATE -O3 -DNDEBUG)
 
-    set(BENCH_JSON     "${CMAKE_CURRENT_SOURCE_DIR}/tests/5MB.json"     CACHE PATH "Pretty JSON file for benchmark")
-    set(BENCH_JSON_MIN "${CMAKE_CURRENT_SOURCE_DIR}/tests/5MB-min.json" CACHE PATH "Minified JSON file for benchmark")
+    set(BENCH_JSON "${CMAKE_CURRENT_SOURCE_DIR}/tests/bench/large-array-people-records.json" CACHE PATH "JSON file for benchmark")
 
     add_custom_target(run_benchmark
-        COMMAND benchmark "${BENCH_JSON}" "${BENCH_JSON_MIN}"
+        COMMAND benchmark "${BENCH_JSON}"
         DEPENDS benchmark
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Running JSON benchmark"
