@@ -47,6 +47,8 @@ namespace Serde {
       JSON();
       /// Creates a JSON boolean value
       JSON(bool value);
+      /// Creates a JSON string value from a single character
+      JSON(char value);
       /// Creates a JSON string value from a const char *
       JSON(const char * value);
       /// Assigns the given array or object to this instance.
@@ -79,7 +81,6 @@ namespace Serde {
       JSON(const T &values) {
         auto arr = std::make_unique<JSONArray>();
         arr->reserve(std::distance(std::begin(values), std::end(values)));
-        arr->resize(std::distance(std::begin(values), std::end(values)));
         for (const auto &v: values)
           arr->emplace_back(v);
         type = array;

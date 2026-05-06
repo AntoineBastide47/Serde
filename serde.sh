@@ -110,6 +110,7 @@ do_test() {
   local suite_bin="$BUILD_DIR/json_test_suite"
   local test_data="$BUILD_DIR/_deps/jsontestsuite-src/test_parsing"
   local hf_bin="$BUILD_DIR/hf_test_suite"
+  local serde_bin="$BUILD_DIR/serde_test_suite"
 
   if [[ ! -f "$suite_bin" ]]; then
     echo "ERROR: json_test_suite binary not found at $suite_bin"
@@ -123,6 +124,10 @@ do_test() {
     echo "ERROR: hf_test_suite binary not found at $hf_bin"
     exit 1
   fi
+  if [[ ! -f "$serde_bin" ]]; then
+    echo "ERROR: serde_test_suite binary not found at $serde_bin"
+    exit 1
+  fi
 
   echo "==> Running JSONTestSuite..."
   echo ""
@@ -132,6 +137,11 @@ do_test() {
   echo "==> Running HeaderForge test suite..."
   echo ""
   "$hf_bin"
+
+  echo ""
+  echo "==> Running Serde test suite..."
+  echo ""
+  "$serde_bin"
 }
 
 # ---- benchmark --------------------------------------------------------------

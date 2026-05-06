@@ -9,6 +9,7 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <typeinfo>
 #include <unordered_map>

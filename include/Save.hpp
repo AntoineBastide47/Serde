@@ -40,6 +40,11 @@ No save overloads were found for the requested type.
       json = data;
   }
 
+  template<size_t N> static void _e_save(const char (&data)[N], const Format format, JSON &json) {
+    if (format == Format::JSON)
+      json = std::string_view(data, N > 0 ? N - 1 : 0);
+  }
+
   template<typename T, size_t N> static void _e_save(const T (&data)[N], const Format format, JSON &json) {
     if (format == Format::JSON) {
       json = JSON::Array();
@@ -76,7 +81,8 @@ No save overloads were found for the requested type.
       for (const auto &[k, v]: data) {
         JSON key;
         _e_saveImpl(k, format, key);
-        _e_saveImpl(v, format, json[key.Dump()]);
+        const std::string keyStr = key.IsString() ? key.GetString() : key.Dump();
+        _e_saveImpl(v, format, json[keyStr]);
       }
     }
   }

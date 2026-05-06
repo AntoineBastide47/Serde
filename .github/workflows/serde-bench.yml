@@ -49,6 +49,7 @@ jobs:
           cmake --build build --parallel
           ./build/json_test_suite ./build/_deps/jsontestsuite-src/test_parsing
           ./build/hf_test_suite
+          ./build/serde_test_suite
 
       - name: Run tests
         if: runner.os != 'Windows'

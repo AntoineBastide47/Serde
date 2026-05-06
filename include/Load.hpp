@@ -7,6 +7,8 @@
 #ifndef LOAD_HPP
 #define LOAD_HPP
 
+#include <cmath>
+
 #include "Concepts.hpp"
 #include "Deserializer.hpp"
 #include "JSON.hpp"

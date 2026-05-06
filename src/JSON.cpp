@@ -21,6 +21,9 @@ namespace Serde {
   JSON::JSON(const bool value)
     : type(Boolean), data(value) {}
 
+  JSON::JSON(const char value)
+    : JSON(std::string(1, value)) {}
+
   JSON::JSON(const char *value)
     : JSON(std::string(value)) {}
 

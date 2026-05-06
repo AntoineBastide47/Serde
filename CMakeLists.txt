@@ -81,10 +81,14 @@ if(SERDE_BUILD_TESTS)
     add_executable(json_test_suite tests/json_test_suite.cpp)
     target_link_libraries(json_test_suite PRIVATE ${PROJECT_NAME})
 
+    add_executable(serde_test_suite tests/serde_test_suite.cpp)
+    target_link_libraries(serde_test_suite PRIVATE ${PROJECT_NAME})
+
     add_test(
         NAME    JSONTestSuite
         COMMAND json_test_suite ${jsontestsuite_SOURCE_DIR}/test_parsing
     )
+    add_test(NAME SerdeTestSuite COMMAND serde_test_suite)
 endif()
 
 option(HF_BUILD_TESTS "Build HeaderForge generator test suite" OFF)
