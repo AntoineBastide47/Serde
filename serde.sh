@@ -103,12 +103,13 @@ do_build() {
 # ---- test -------------------------------------------------------------------
 do_test() {
   echo "==> Configuring with tests ($BUILD_TYPE)..."
-  configure -DSERDE_BUILD_TESTS=ON
+  configure -DSERDE_BUILD_TESTS=ON -DHF_BUILD_TESTS=ON
   echo "==> Building with $JOBS jobs..."
   cmake --build "$BUILD_DIR" --parallel "$JOBS"
 
   local suite_bin="$BUILD_DIR/json_test_suite"
   local test_data="$BUILD_DIR/_deps/jsontestsuite-src/test_parsing"
+  local hf_bin="$BUILD_DIR/hf_test_suite"
 
   if [[ ! -f "$suite_bin" ]]; then
     echo "ERROR: json_test_suite binary not found at $suite_bin"
@@ -118,10 +119,19 @@ do_test() {
     echo "ERROR: JSONTestSuite test_parsing directory not found at $test_data"
     exit 1
   fi
+  if [[ ! -f "$hf_bin" ]]; then
+    echo "ERROR: hf_test_suite binary not found at $hf_bin"
+    exit 1
+  fi
 
   echo "==> Running JSONTestSuite..."
   echo ""
   "$suite_bin" "$test_data"
+
+  echo ""
+  echo "==> Running HeaderForge test suite..."
+  echo ""
+  "$hf_bin"
 }
 
 # ---- benchmark --------------------------------------------------------------

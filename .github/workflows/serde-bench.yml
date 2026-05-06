@@ -13,6 +13,9 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get install -y cmake llvm-17-dev libclang-17-dev
 
+      - name: Run tests
+        run: ./serde.sh test
+
       - name: Run benchmark
         run: ./serde.sh bench | tee bench-output.txt
 

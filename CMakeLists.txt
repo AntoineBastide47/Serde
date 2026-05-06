@@ -84,6 +84,16 @@ if(SERDE_BUILD_TESTS)
     )
 endif()
 
+option(HF_BUILD_TESTS "Build HeaderForge generator test suite" OFF)
+if(HF_BUILD_TESTS)
+    add_executable(hf_test_suite
+        tests/hf_test_suite.cpp
+        HeaderForge/src/Generator.cpp
+    )
+    target_include_directories(hf_test_suite PRIVATE HeaderForge/include)
+    target_compile_options(hf_test_suite PRIVATE -O2)
+endif()
+
 if(SERDE_BUILD_BENCHMARK)
     add_executable(benchmark tests/benchmark.cpp)
     target_link_libraries(benchmark PRIVATE ${PROJECT_NAME})
