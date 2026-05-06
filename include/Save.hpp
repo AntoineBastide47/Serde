@@ -19,7 +19,7 @@ namespace Serde {
         _e_f<T>, R"(
 No save overloads were found for the requested type.
  - if the type is a part of the STL, convert it to a supported STL type before the save call
- - if the type is not a part of the STL, make sure the type publicly inherits from Engine::Reflection::Reflectable
+ - if the type is not a part of the STL, make sure the type publicly inherits from Serde::Reflectable
 )"
       );
   }

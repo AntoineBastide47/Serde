@@ -35,7 +35,7 @@ namespace HeaderForge {
 
   /**
    * Parser class that uses Clang's AST to extract `Record` information from a C++ header.
-   * Only classes/structs that are friends of Engine::Reflection::Serializer are considered.
+   * Only classes/structs that are friends of Serde::Serializer are considered.
    */
   class Parser final {
     public:
@@ -59,6 +59,6 @@ namespace HeaderForge {
       /// @returns The path to the macOS SDK
       static std::string getMacOSSDKPath();
   };
-} // namespace Engine::Reflection
+} // namespace HeaderForge
 
 #endif // PARSER_HPP

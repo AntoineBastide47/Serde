@@ -354,4 +354,4 @@ namespace HeaderForge {
     result.erase(std::ranges::remove(result, '\n').begin(), result.end());
     return result;
   }
-} // namespace Engine::Reflection
+} // namespace Serde

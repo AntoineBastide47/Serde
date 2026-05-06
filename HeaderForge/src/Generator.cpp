@@ -88,7 +88,7 @@ namespace HeaderForge {
   void Generator::GenerateReflectionFactoryCode(const Record &record, std::ostream &output) {
     output.write(
       "  static inline const bool _reg = [] {\\\n"
-      "    Engine::Reflection::ReflectionFactory::RegisterType<", 96
+      "    Serde::ReflectionFactory::RegisterType<", 83
     );
     output.write(record.name.c_str(), static_cast<long>(record.name.size()));
     output.write(">(\"", 3);
@@ -102,13 +102,13 @@ namespace HeaderForge {
 
   void Generator::GenerateSaveFunction(const Record &record, std::ostream &output) {
     output.write(
-      "  void _e_save(const Engine::Reflection::Format format, Engine::JSON &json) const override { \\\n"
-      "    if (format == Engine::Reflection::Format::JSON) { \\\n"
-      "      json = Engine::JSON::Object();\\\n", 189
+      "  void _e_save(const Serde::Format format, Serde::JSON &json) const override { \\\n"
+      "    if (format == Serde::Format::JSON) { \\\n"
+      "      json = Serde::JSON::Object();\\\n", 161
     );
 
     for (const auto &field: record.fields) {
-      output.write("      Engine::Reflection::_e_saveImpl(", 38);
+      output.write("      Serde::_e_saveImpl(", 25);
       output.write(field.c_str(), static_cast<long>(field.size()));
       output.write(", format, json[\"", 16);
       output.write(field.c_str(), static_cast<long>(field.size()));
@@ -119,8 +119,8 @@ namespace HeaderForge {
 
   void Generator::GenerateLoadFunction(const Record &record, std::ostream &output) {
     output.write(
-      "  void _e_load(const Engine::Reflection::Format format, const Engine::JSON &json) override { \\\n"
-      "    if (format == Engine::Reflection::Format::JSON) {", 148
+      "  void _e_load(const Serde::Format format, const Serde::JSON &json) override { \\\n"
+      "    if (format == Serde::Format::JSON) {", 121
     );
 
     if (record.fields.empty()) {
@@ -130,7 +130,7 @@ namespace HeaderForge {
 
     output.write(" \\\n", 3);
     for (const auto &field: record.fields) {
-      output.write("      Engine::Reflection::_e_loadImpl(", 38);
+      output.write("      Serde::_e_loadImpl(", 25);
       output.write(field.c_str(), static_cast<long>(field.size()));
       output.write(", format, json.At(\"", 19);
       output.write(field.c_str(), static_cast<long>(field.size()));
@@ -153,7 +153,7 @@ namespace HeaderForge {
     output.write(name.c_str(), static_cast<long>(name.size()));
     output.write(
       " = [] {\\\n"
-      "    Engine::Reflection::ReflectionFactory::RegisterEnum<", 65
+      "    Serde::ReflectionFactory::RegisterEnum<", 52
     );
     output.write(enumerator.name.c_str(), static_cast<long>(enumerator.name.size()));
     output.write(">(\\\n    \"", 9);

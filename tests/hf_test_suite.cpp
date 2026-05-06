@@ -76,7 +76,7 @@ static void testGenerateSaveFunction() {
     Generator::GenerateSaveFunction(Record{false, "S", "f.hpp", {"x", "y"}, {}}, out);
     const std::string s = out.str();
     check(has(s, "_e_save"),                              "save signature present");
-    check(has(s, "json = Engine::JSON::Object()"),        "initialises json object");
+    check(has(s, "json = Serde::JSON::Object()"),        "initialises json object");
     check(has(s, "_e_saveImpl(x, format, json[\"x\"])"), "saves field x");
     check(has(s, "_e_saveImpl(y, format, json[\"y\"])"), "saves field y");
   }
@@ -86,7 +86,7 @@ static void testGenerateSaveFunction() {
     std::ostringstream out;
     Generator::GenerateSaveFunction(Record{false, "Empty", "f.hpp", {}, {}}, out);
     const std::string s = out.str();
-    check(has(s, "json = Engine::JSON::Object()"), "empty struct still initialises object");
+    check(has(s, "json = Serde::JSON::Object()"), "empty struct still initialises object");
     check(!has(s, "_e_saveImpl"),                  "empty struct has no save calls");
   }
 }

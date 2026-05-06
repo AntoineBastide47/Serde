@@ -17,8 +17,7 @@ namespace Serde {
 }
 
 #define _e_SERIALIZE_RECORD \
-  friend class Editor::EntityInspector; \
-  friend class Engine::Reflection::ReflectionFactory; \
+  friend class Serde::ReflectionFactory; \
   template<typename T> friend bool _e_renderInEditor(T &, const std::string &, bool, const std::string &); \
   public: \
     [[nodiscard]] std::string_view ClassNameQualified() const override { return CLASS_NAME_FULLY_QUALIFIED; } \
