@@ -1,0 +1,54 @@
+cmake_minimum_required(VERSION 3.20)
+project(HeaderForge VERSION 1.3.1)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+add_executable(${PROJECT_NAME}
+    main.cpp
+    src/Parser.cpp
+    include/Parser.hpp
+    src/Generator.cpp
+    include/Generator.hpp
+)
+
+target_include_directories(${PROJECT_NAME} PUBLIC
+    include
+    ${CMAKE_SOURCE_DIR}/include
+)
+
+# === LLVM & Clang ===
+find_package(LLVM REQUIRED CONFIG)
+find_package(Clang REQUIRED CONFIG)
+include_directories(${LLVM_INCLUDE_DIRS})
+
+target_link_libraries(${PROJECT_NAME}
+    clangTooling clangFrontend clangASTMatchers clangAST clangBasic libclang
+)
+
+# --------------------------
+# Build Configs
+# --------------------------
+
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        -O3 -DNDEBUG -finline-functions -fomit-frame-pointer
+        -ffunction-sections -fdata-sections -flto
+    )
+    target_link_options(${PROJECT_NAME} PRIVATE -Wl,-O2)
+    set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_STRIP} $<TARGET_FILE:${PROJECT_NAME}>)
+elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+        set(SANITIZER_FLAGS "-fsanitize=address -fno-omit-frame-pointer")
+        set(EXTRA_DEBUG_FLAGS "-g -O1")
+        set(ASAN_OPTIONS_FLAGS "-fsanitize-recover=address -fsanitize=undefined -fsanitize-address-use-after-scope")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SANITIZER_FLAGS} ${EXTRA_DEBUG_FLAGS} ${ASAN_OPTIONS_FLAGS}")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SANITIZER_FLAGS} ${EXTRA_DEBUG_FLAGS} ${ASAN_OPTIONS_FLAGS}")
+        set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} ${SANITIZER_FLAGS} ${EXTRA_DEBUG_FLAGS} ${ASAN_OPTIONS_FLAGS}")
+        add_compile_definitions(ASAN_OPTIONS="verbosity=1:halt_on_error=1:detect_leaks=1:symbolize=1")
+    endif ()
+endif ()
+
+include(${CMAKE_SOURCE_DIR}/PlatformDetection.cmake)
+setup_platform_detection(${PROJECT_NAME})

@@ -1,0 +1,64 @@
+//
+// Serializer.hpp
+// Author: Antoine Bastide
+// Date: 18.06.2025
+//
+
+#ifndef SERIALIZER_HPP
+#define SERIALIZER_HPP
+
+#include <fstream>
+#include <string>
+
+#include "Save.hpp"
+
+namespace Serde {
+  struct Serializer final {
+    /**
+     * Converts the given data to a JSON representation
+     * @tparam T The type of the data
+     * @param data The data to convert
+     * @note Throws a compile time error when trying to save an STL type that isn't supported, or a non STL type not marked as serializable
+     * @return The converted data
+     */
+    template<typename T> static JSON ToJson(const T &data) {
+      JSON json;
+      _e_saveImpl(data, Format::JSON, json);
+      return json;
+    }
+
+    /**
+     * Converts the given data to a JSON representation
+     * @tparam T The type of the data
+     * @param data The data to convert
+     * @param prettyPrint If the JSON string needs to be pretty printed, false by default
+     * @param indentChar The character used to indent the json string when pretty printed, set to whitespace by default
+     * @note Throws a compile time error when trying to save an STL type that isn't supported, or a non STL type not marked as serializable
+     * @return The converted data
+     */
+    template<typename T> static std::string ToJsonString(
+      const T &data, const bool prettyPrint = false, const char indentChar = ' '
+    ) {
+      return ToJson(data).Dump(prettyPrint, indentChar);
+    }
+
+    /**
+     * Converts the given data to a JSON representation and saves it to the given file
+     * @tparam T The type of the data
+     * @param data The data to convert
+     * @param filePath The file in which the converted data will be stored
+     * @param prettyPrint If the JSON string needs to be pretty printed, false by default
+     * @param indentChar The character used to indent the json string when pretty printed, set to whitespace by default
+     * @note Throws a compile time error when trying to save an STL type that isn't supported, or a non STL type not marked as serializable
+     * @return The converted data
+     */
+    template<typename T> static void ToJsonToFile(
+      const T &data, const std::string &filePath, const bool prettyPrint = false, const char indentChar = ' '
+    ) {
+      std::ofstream file(filePath);
+      file << ToJson(data).Dump(prettyPrint, indentChar);
+    }
+  };
+}
+
+#endif //SERIALIZER_HPP

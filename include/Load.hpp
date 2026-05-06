@@ -1,0 +1,247 @@
+//
+// Load.hpp
+// Author: Antoine Bastide
+// Date: 16.07.2025
+//
+
+#ifndef LOAD_HPP
+#define LOAD_HPP
+
+#include "Concepts.hpp"
+#include "Deserializer.hpp"
+#include "JSON.hpp"
+#include "ReflectionFactory.hpp"
+
+namespace Serde {
+  template<typename T> static void _e_loadImpl(T &result, const Format format, const JSON &json) {
+    if constexpr (HasLoadFunction<T, Format>) {
+      if constexpr (!IsConst<T>)
+        _e_load(result, format, json);
+    }
+    else
+      static_assert(
+        _e_f<T>, R"(
+No load overloads were found for the requested type.
+ - if the type is a part of the STL, convert it to a supported STL type before the load call
+ - if the type is not a part of the STL, make sure the type publicly inherits from Engine::Reflection::Reflectable
+)"
+      );
+  }
+
+  template<IsNumber T> static void _e_load(T &result, const Format format, const JSON &json) {
+    if (format == Format::JSON)
+      result = static_cast<T>(json.GetNumber());
+  }
+
+  template<typename T> requires std::is_same_v<std::remove_cvref_t<T>, std::string>
+  static void _e_load(T &result, const Format format, const JSON &json) {
+    if (format == Format::JSON)
+      result = json.GetString();
+  }
+
+  template<typename T> requires std::is_same_v<std::remove_cvref_t<T>, bool>
+  static void _e_load(T &result, const Format format, const JSON &json) {
+    if (format == Format::JSON)
+      result = json.GetBool();
+  }
+
+  template<typename T> requires std::is_enum_v<T>
+  static void _e_load(T &result, const Format format, const JSON &json) {
+    if (format == Format::JSON) {
+      auto &value = json.GetNumber();
+      if (std::trunc(value) != value)
+        throw std::runtime_error("Non-integral value for enum");
+
+      result = static_cast<T>(static_cast<std::underlying_type_t<T>>(value));
+    }
+  }
+
+  template<typename T, size_t N> static void _e_load(T (&result)[N], const Format format, const JSON &json) {
+    if (format == Format::JSON) {
+      const auto &array = json.GetArray();
+
+      if (array.size() != N) {
+        throw std::runtime_error(
+          "JSON array size mismatch for fixed array: expected " +
+          std::to_string(N) + ", got " + std::to_string(array.size())
+        );
+      }
+
+      for (size_t i = 0; i < N; ++i) {
+        _e_loadImpl(result[i], format, array[i]);
+      }
+    }
+  }
+
+  template<IsContainer T> static void _e_load(T &result, const Format format, const JSON &json) {
+    if (format == Format::JSON) {
+      const auto &array = json.GetArray();
+
+      if constexpr (requires { result.clear(); })
+        result.clear();
+
+      if constexpr (requires { result.reserve(array.size()); })
+        result.reserve(array.size());
+
+      if constexpr (requires { result.insert(result.end(), typename T::value_type{}); }) {
+        for (const auto &e: array) {
+          typename T::value_type value;
+          _e_loadImpl(value, format, e);
+          result.insert(result.end(), std::move(value));
+        }
+      } else if constexpr (requires { result.insert(typename T::value_type{}); }) {
+        for (const auto &e: array) {
+          typename T::value_type value;
+          _e_loadImpl(value, format, e);
+          result.insert(std::move(value));
+        }
+      } else if constexpr (requires { result.insert_after(result.before_begin(), typename T::value_type{}); }) {
+        auto it = result.before_begin();
+        for (const auto &e: array) {
+          typename T::value_type value;
+          _e_loadImpl(value, format, e);
+          it = result.insert_after(it, std::move(value));
+        }
+      } else if constexpr (requires { result.push_back(typename T::value_type{}); }) {
+        for (const auto &e: array) {
+          typename T::value_type value;
+          _e_loadImpl(value, format, e);
+          result.push_back(std::move(value));
+        }
+      } else if constexpr (requires { result.emplace_back(typename T::value_type{}); }) {
+        for (const auto &e: array) {
+          typename T::value_type value;
+          _e_loadImpl(value, format, e);
+          result.emplace_back(std::move(value));
+        }
+      } else if constexpr (std::is_same_v<std::decay_t<T>, std::array<typename T::value_type, T().size()>>) {
+        if (array.size() != T().size()) {
+          throw std::runtime_error("JSON array size mismatch for std::array");
+        }
+
+        if constexpr (requires { result.resize(array.size()); })
+          result.resize(array.size());
+
+        size_t i = 0;
+        for (const auto &e: array)
+          _e_loadImpl(result[i++], format, e);
+      } else {
+        static_assert(false, "Container type not supported for recursive insertion");
+      }
+    }
+  }
+
+  template<IsMap T> static void _e_load(T &result, const Format format, const JSON &json) {
+    if (format == Format::JSON) {
+      const auto &obj = json.GetObject();
+
+      if constexpr (requires { result.clear(); })
+        result.clear();
+      if constexpr (requires { result.resize(obj.size()); })
+        result.reserve(obj.size());
+
+      for (const auto &[k, v]: obj) {
+        typename T::key_type key;
+        typename T::mapped_type value;
+
+        if constexpr (std::is_same_v<typename T::key_type, std::string>)
+          key = k;
+        else {
+          using KeyType = T::key_type;
+          key = Deserializer::FromJsonString<KeyType>(k);
+        }
+
+        _e_loadImpl(value, format, v);
+        result.emplace(std::move(key), std::move(value));
+      }
+    }
+  }
+
+  template<IsPair T> static void _e_load(T &result, const Format format, const JSON &json) {
+    if (format == Format::JSON) {
+      const auto &arr = json.GetArray();
+      _e_loadImpl(result.first, format, arr.at(0));
+      _e_loadImpl(result.second, format, arr.at(1));
+    }
+  }
+
+  template<IsSmartPtr T> static void _e_load(T &result, const Format format, const JSON &json) {
+    if (format == Format::JSON) {
+      if (json.IsNull()) {
+        result = nullptr;
+        return;
+      }
+
+      if constexpr (IsNotReflectable<typename T::element_type>) {
+        if constexpr (IsSharedPtr<T>)
+          result = std::make_shared<typename T::element_type>();
+        else
+          result = std::make_unique<typename T::element_type>();
+
+        _e_loadImpl(*result, format, json);
+      } else {
+        if constexpr (IsSharedPtr<T>)
+          result = ReflectionFactory::CreateShared<typename T::element_type>(json["type"].GetString());
+        else
+          result = ReflectionFactory::CreateUnique<typename T::element_type>(json["type"].GetString());
+
+        result->_e_load(format, json["data"]);
+        result->OnDeserialize(format, json["data"]);
+      }
+    }
+  }
+
+  template<IsReflectable T> static void _e_load(T &result, const Format format, const JSON &json) {
+    if constexpr (requires { result._e_load(format, json); }) {
+      result._e_load(format, json);
+      result.OnDeserialize(format, json);
+    } else
+      static_assert(_e_f<T>, "Missing load function. Ensure the type uses it's SERIALIZE_* macro.");
+  }
+
+  template<typename... Ts> static void _e_load(std::tuple<Ts...> &t, const Format format, const JSON &json) {
+    if (format == Format::JSON) {
+      // ReSharper disable once CppDFAUnreadVariable
+      size_t i = 0;
+      std::apply(
+        [&](Ts &... elems) {
+          (([&] {
+            _e_loadImpl(elems, format, json.At(i++));
+          }()), ...);
+        }, t
+      );
+    }
+  }
+
+  template<typename... Ts> static void _e_load(std::variant<Ts...> &v, const Format format, const JSON &json) {
+    if (format == Format::JSON) {
+      if (!json.IsObject() || !json.Contains("index") || !json.Contains("value"))
+        throw std::runtime_error("Invalid JSON for variant");
+
+      const size_t idx = static_cast<size_t>(json["index"].GetNumber());
+      const auto &valueJson = json["value"];
+
+      [&]<size_t... Is>(std::index_sequence<Is...>) {
+        (void)((Is == idx
+                  ? [&] {
+                    std::variant_alternative_t<Is, std::variant<Ts...>> temp;
+                    _e_loadImpl(temp, format, valueJson);
+                    v = std::move(temp);
+                  }(), true
+                  : false) || ...);
+      }(std::index_sequence_for<Ts...>{});
+    }
+  }
+
+  template<typename T> static void _e_load(T &, Format, const JSON &) {
+    static_assert(
+      _e_f<T>, R"(
+No load overloads were found for the requested type.
+ - if the type is a part of the STL, convert it to a supported STL type before the load call
+ - if the type is not a part of the STL, make sure the type publicly inherits from Engine::Reflection::Reflectable
+)"
+    );
+  }
+}
+
+#endif //LOAD_HPP

@@ -1,0 +1,357 @@
+//
+// Parser.cpp
+// Author: Antoine Bastide
+// Date: 13/06/2025
+//
+
+// Clang AST and Tooling includes:
+#include <clang/AST/DeclTemplate.h>
+#include <clang/AST/QualTypeNames.h>
+#include <clang/AST/RecursiveASTVisitor.h>
+#include <clang/Frontend/CompilerInstance.h>
+#include <clang/Frontend/FrontendActions.h>
+#include <clang/Tooling/CompilationDatabase.h>
+#include <clang/Tooling/Tooling.h>
+
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <unordered_set>
+
+// Add the macro definitions
+#include "Parser.hpp"
+#include "../include/Reflectable.hpp"
+
+using namespace clang;
+namespace fs = std::filesystem;
+
+// Recursive AST Visitor to find serializable classes and their fields.
+class SerializableVisitor final : public RecursiveASTVisitor<SerializableVisitor> {
+  public:
+    explicit SerializableVisitor(std::vector<HeaderForge::Record> &recordsOut)
+      : records(recordsOut) {}
+
+    static bool CanSerializeRecord(const CXXRecordDecl *decl, std::unordered_set<const CXXRecordDecl *> &visited) { // NOLINT(*-no-recursion)
+      decl = decl->getDefinition();
+      if (!decl || !decl->isCompleteDefinition() || !visited.insert(decl).second)
+        return false;
+
+      if (decl->getNameAsString().find("Reflectable") != std::string::npos)
+        return true;
+
+      for (const auto &B: decl->bases())
+        if (const auto *BaseRD = B.getType()->getAsCXXRecordDecl())
+          if (CanSerializeRecord(BaseRD->getDefinition(), visited))
+            return true;
+
+      return false;
+    }
+
+    // Visit each CXXRecordDecl (class/struct) in the AST:
+    // ReSharper disable once CppDFAConstantFunctionResult
+    bool VisitCXXRecordDecl(const CXXRecordDecl *decl) const {
+      // Skip forward declarations and anonymous classes/structs
+      if (!decl->isThisDeclarationADefinition() || decl->isImplicit() || decl->getLocation().isInvalid() ||
+          !decl->hasDefinition() || !decl->isCompleteDefinition() || !decl->getIdentifier() || decl->isUnion())
+        return true;
+
+      // Make sure we get the class from its source file
+      const SourceManager &SM = decl->getASTContext().getSourceManager();
+      if (SM.isInSystemHeader(decl->getLocation()))
+        return true;
+
+      if (std::unordered_set<const CXXRecordDecl *> visited;
+        !CanSerializeRecord(decl, visited) || decl->getNameAsString().find("Reflectable") != std::string::npos)
+        return true;
+
+      HeaderForge::Record rec;
+      rec.name = decl->getQualifiedNameAsString();
+      rec.isClass = decl->isClass();
+
+      if (const PresumedLoc ploc = SM.getPresumedLoc(decl->getLocation()); ploc.isValid())
+        rec.filePath = ploc.getFilename();
+      else
+        rec.filePath = SM.getFilename(decl->getLocation());
+
+      // Extract class fields and inherited fields
+      std::vector<const FieldDecl *> fields;
+      collectAllFields(decl, fields);
+
+      for (const auto &field: fields) {
+        if (!field || !field->getDeclContext() || !field->getASTContext().getTranslationUnitDecl())
+          continue;
+
+        // Skip anonymous, mutable, volatile
+        if (field->getName().empty() || field->isMutable() || field->getType().isVolatileQualified())
+          continue;
+
+        // Start recursive check on this field's type
+        bool isSkipType = false;
+        checkType(field->getType(), isSkipType);
+        if (isSkipType)
+          continue;
+
+        // Check custom annotation attributes on the field
+        bool isSerializable = false, isNonSerializable = false;
+        findAnnotations(field, isSerializable, isNonSerializable);
+
+        if (!isNonSerializable && (field->getAccessUnsafe() == AS_public || isSerializable))
+          rec.fields.push_back(field->getNameAsString());
+      }
+
+      for (auto *d: decl->decls())
+        if (const auto *usingDecl = dyn_cast<UsingDecl>(d)) {
+          std::vector<const FieldDecl *> usingFields;
+          for (const auto *shadow: usingDecl->shadows())
+            if (const auto *fieldDecl = dyn_cast<FieldDecl>(shadow->getTargetDecl()))
+              usingFields.push_back(fieldDecl);
+
+          // Check custom annotation attributes on the field
+          bool isSerializable = false;
+          bool isNonSerializable = false;
+          findAnnotations(usingDecl, isSerializable, isNonSerializable);
+
+          for (const auto field: usingFields) {
+            // Start recursive check on this field's type
+            bool isSkipType = false;
+            checkType(field->getType(), isSkipType);
+            if (isSkipType)
+              continue;
+
+            if (!isNonSerializable && (field->getAccessUnsafe() == AS_public || isSerializable))
+              rec.fields.push_back(field->getNameAsString());
+          }
+        }
+
+      records.emplace_back(std::move(rec));
+
+      return true;
+    }
+
+    // ReSharper disable once CppDFAConstantFunctionResult
+    bool VisitEnumDecl(const EnumDecl *enumerator) const {
+      if (!enumerator->isThisDeclarationADefinition())
+        return true;
+
+      const auto &SM = enumerator->getASTContext().getSourceManager();
+      if (SM.isInSystemHeader(enumerator->getLocation()))
+        return true;
+
+      std::string loc;
+      if (const PresumedLoc ploc = SM.getPresumedLoc(enumerator->getLocation()); ploc.isValid())
+        loc = ploc.getFilename();
+      else
+        loc = SM.getFilename(enumerator->getLocation()).str();
+
+      if (loc.starts_with("./vendor") || enumerator->getName().empty())
+        return true;
+
+      if (const auto *recordDecl = llvm::dyn_cast<CXXRecordDecl>(enumerator->getDeclContext())) {
+        for (auto &record: records)
+          if (recordDecl->getQualifiedNameAsString() == record.name) {
+            HeaderForge::Enum newEnum{enumerator->getQualifiedNameAsString()};
+            newEnum.values.reserve(std::distance(enumerator->decls().begin(), enumerator->decls().end()));
+            for (const auto *EC: enumerator->enumerators())
+              newEnum.values.emplace_back(EC->getNameAsString());
+            record.enums.emplace_back(std::move(newEnum));
+
+            return true;
+          }
+      }
+
+      return true;
+    }
+
+    static void findAnnotations(const Decl *decl, bool &isSerializable, bool &isNonSerializable) {
+      for (const Attr *attr: decl->attrs()) {
+        if (const auto *ann = dyn_cast<AnnotateAttr>(attr)) {
+          if (const StringRef annotation = ann->getAnnotation(); annotation == _e_SERIALIZE_STRING)
+            isSerializable = true;
+          else if (annotation == _e_NON_SERIALIZABLE_STRING)
+            isNonSerializable = true;
+        }
+      }
+    }
+
+    static void collectAllFields(const CXXRecordDecl *decl, std::vector<const FieldDecl *> &out, const int depth = 0) { // NOLINT(*-no-recursion)
+      decl = decl->getDefinition();
+      if (!decl || !decl->isCompleteDefinition())
+        return;
+
+      // Find all inherited fields first
+      for (const auto &B: decl->bases())
+        if (const auto *BaseRD = B.getType()->getAsCXXRecordDecl())
+          collectAllFields(BaseRD->getDefinition(), out, depth + 1);
+
+      // Extract each field
+      for (const auto *FD: decl->fields())
+        if (depth == 0 || FD->getAccessUnsafe() != AS_private)
+          out.emplace_back(FD);
+    }
+
+    static void checkType(const QualType T, bool &isSkipType) { // NOLINT(*-no-recursion)
+      if (T.isNull() || isSkipType)
+        return;
+
+      const Type *typePtr = T.getTypePtr();
+      if (!typePtr)
+        return;
+
+      if (typePtr->isReferenceType()) {
+        isSkipType = true;
+        return;
+      }
+
+      // Skip raw pointers and pointers to members
+      if (typePtr->isPointerType() || typePtr->isMemberPointerType())
+        isSkipType = true;
+        // Template specialization types (e.g., containers or smart pointers)
+      else if (const auto *specType = T->getAs<TemplateSpecializationType>()) {
+        const TemplateName tmplName = specType->getTemplateName();
+        if (const TemplateDecl *td = tmplName.getAsTemplateDecl()) {
+          const std::string name = td->getQualifiedNameAsString();
+          if (name == "std::function" || name == "std::weak_ptr" || name == "std::shared_ptr" || name ==
+              "std::unique_ptr") {
+            isSkipType = true;
+            return;
+          }
+        }
+
+        // Recursively check all template type arguments directly
+        for (const TemplateArgument &arg: specType->template_arguments()) {
+          if (isSkipType)
+            break;
+
+          if (arg.getKind() == TemplateArgument::Type)
+            checkType(arg.getAsType(), isSkipType);
+        }
+      }
+      // Array types: check element type
+      else if (auto *arrType = llvm::dyn_cast<ArrayType>(typePtr))
+        checkType(arrType->getElementType(), isSkipType);
+    }
+  private:
+    std::vector<HeaderForge::Record> &records;
+};
+
+// ASTConsumer that uses the visitor to traverse the AST
+class SerializableConsumer final : public ASTConsumer {
+  public:
+    explicit SerializableConsumer(std::vector<HeaderForge::Record> &recordsOut)
+      : visitor(recordsOut) {}
+
+    void HandleTranslationUnit(ASTContext &context) override {
+      // Traverse the entire translation unit AST
+      visitor.TraverseDecl(context.getTranslationUnitDecl());
+    }
+  private:
+    SerializableVisitor visitor;
+};
+
+// FrontendAction to run our ASTConsumer
+class SerializableAction final : public ASTFrontendAction, public tooling::FrontendActionFactory {
+  public:
+    explicit SerializableAction(std::vector<HeaderForge::Record> &recordsOut)
+      : records(recordsOut) {}
+
+    std::unique_ptr<FrontendAction> create() override {
+      return std::make_unique<SerializableAction>(records);
+    }
+  protected:
+    std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI, StringRef) override {
+      CI.getDiagnostics().setClient(new IgnoringDiagConsumer(), true);
+      return std::make_unique<SerializableConsumer>(records);
+    }
+  private:
+    std::vector<HeaderForge::Record> &records;
+};
+
+namespace HeaderForge {
+  void Parser::ParseHeader(const std::string &headerPath, std::vector<Record> &records) {
+    // Read the header file into a string
+    std::ifstream inFile(headerPath);
+    if (!inFile.is_open()) {
+      std::cerr << "Failed to open file: " << headerPath << std::endl;
+      return;
+    }
+    const std::string code((std::istreambuf_iterator(inFile)), std::istreambuf_iterator<char>());
+    inFile.close();
+
+    std::vector<std::string> args{"-stdlib=libc++", "-std=c++20"};
+
+    #if __APPLE__
+    args.emplace_back("-isysroot");
+    args.emplace_back(getMacOSSDKPath());
+    args.emplace_back("-I" + (getMacOSSDKPath() + "/usr/include"));
+    args.emplace_back("-I" + (getMacOSSDKPath() + "/usr/include/c++/v1"));
+    #endif
+
+    // Clang resource dir
+    args.emplace_back("-resource-dir");
+    args.emplace_back(getClangResourceDir());
+    const fs::path path(getClangResourceDir());
+    args.emplace_back("-I" + (path.parent_path().parent_path().parent_path() / "include").string());
+    args.emplace_back("-I" + (getClangResourceDir() + "include/c++/v1"));
+
+    args.emplace_back("-Wno-unused-command-line-argument");
+
+    tooling::FixedCompilationDatabase Compilations(".", args);
+    tooling::ClangTool Tool(Compilations, {headerPath});
+    SerializableAction factory(records);
+    Tool.run(&factory);
+  }
+
+  void Parser::PrintRecords(const std::vector<Record> &records) {
+    for (const auto &[isClass, name, filePath, fields, enums]: records) {
+      std::cout << "Record: " << (isClass ? "class " : "struct ") << name << " (defined in " << filePath << ")\n";
+
+      if (fields.empty())
+        std::cout << "  [No serializable fields]\n";
+      else {
+        std::cout << "  [Fields: " << fields.size() << "]\n";
+        for (const auto &field: fields) {
+          std::cout << "    - " << field << "\n";
+        }
+      }
+
+      std::cout << "\n";
+    }
+  }
+
+  std::string Parser::getClangResourceDir() {
+    std::array<char, 128> buffer{};
+    static std::string result;
+    if (!result.empty())
+      return result;
+
+    FILE *pipe = popen("clang -print-resource-dir", "r");
+    if (!pipe)
+      throw std::runtime_error("popen failed");
+    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) {
+      result += buffer.data();
+    }
+    if (const auto rc = pclose(pipe); rc != 0)
+      throw std::runtime_error("clang command failed");
+    if (result.ends_with("\n"))
+      result = result.substr(0, result.size() - 1);
+    return result;
+  }
+
+  std::string Parser::getMacOSSDKPath() {
+    std::array<char, 128> buffer{};
+    static std::string result;
+    if (!result.empty())
+      return result;
+
+    FILE *pipe = popen("xcrun --sdk macosx --show-sdk-path", "r");
+    if (!pipe)
+      throw std::runtime_error("popen failed");
+    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) {
+      result += buffer.data();
+    }
+    if (const auto rc = pclose(pipe); rc != 0)
+      throw std::runtime_error("xcrun command failed");
+    result.erase(std::ranges::remove(result, '\n').begin(), result.end());
+    return result;
+  }
+} // namespace Engine::Reflection

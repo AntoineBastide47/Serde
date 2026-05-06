@@ -1,0 +1,34 @@
+name: Serde Benchmark
+
+on:
+  push:
+    paths:
+      - 'tools/Serde/**'
+  pull_request:
+    paths:
+      - 'tools/Serde/**'
+  workflow_dispatch:
+
+jobs:
+  bench:
+    name: Benchmark (ubuntu-latest)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get install -y cmake
+
+      - name: Run benchmark
+        working-directory: tools/Serde
+        run: ./serde.sh bench | tee bench-output.txt
+
+      - name: Post results to job summary
+        if: always()
+        working-directory: tools/Serde
+        run: |
+          echo "## Serde Benchmark Results" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -A 20 "Loading files" bench-output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
