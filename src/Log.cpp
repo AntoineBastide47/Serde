@@ -4,6 +4,7 @@
 // Date: 14/11/2024
 //
 
+#include <algorithm>
 #include <iostream>
 #include <ostream>
 
